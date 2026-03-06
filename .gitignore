@@ -49,10 +49,8 @@ backend/.coverage
 .env.example
 *readme.md
 
-backend/alembic/
 *wave*
 *.db
 
 /reports/
-
-TODO.md
+/TODO.md

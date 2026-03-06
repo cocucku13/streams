@@ -1,4 +1,16 @@
 services:
+  postgres:
+    image: postgres:16
+    container_name: dj-postgres
+    environment:
+      POSTGRES_DB: streams
+      POSTGRES_USER: streams
+      POSTGRES_PASSWORD: streams
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
   mediamtx:
     image: bluenviron/mediamtx:latest
     container_name: dj-mediamtx
@@ -23,7 +35,7 @@ services:
       DEBUG: "true"
       SECRET_KEY: local-dev-secret-change-me
       ACCESS_TOKEN_EXPIRE_MINUTES: "10080"
-      DATABASE_URL: sqlite:///./streams.db
+      DATABASE_URL: postgresql+psycopg://streams:streams@postgres:5432/streams
       CORS_ALLOWED_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
       DB_AUTO_CREATE: "false"
       RTMP_BASE: rtmp://localhost:1935/live
@@ -34,6 +46,7 @@ services:
     ports:
       - "8000:8000"
     depends_on:
+      - postgres
       - mediamtx
 
   frontend:
@@ -50,3 +63,6 @@ services:
       - "5173:5173"
     depends_on:
       - backend
+
+volumes:
+  postgres_data:
