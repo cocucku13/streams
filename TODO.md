@@ -51,6 +51,10 @@
 - [x] Wave 5 stream route live-state sync moved to session-based logic (removed request-path HLS probing dependency).
 - [x] Wave 5 stream sessions history endpoint added (`GET /api/streams/{stream_id}/sessions`).
 - [x] Wave 5 backend tests added for stream session service and endpoint coverage (`backend/tests/test_stream_sessions.py`).
+- [x] Wave 6 protected internal ingest lifecycle endpoint added (`POST /api/internal/stream-events`).
+- [x] Wave 6 stream event processing wired (`stream_started` -> start session, `stream_ended` -> end session).
+- [x] Wave 6 internal event security guard added (`X-Internal-Token` + `STREAM_EVENTS_SECRET`).
+- [x] Wave 6 backend event pipeline tests added (`backend/tests/test_stream_event_pipeline.py`).
 
 ## Tech Debt
 - [ ] `frontend/src/pages/DashboardPage.tsx` (`/dashboard-legacy`) duplicates dashboard concerns already covered by modern `/dashboard/*` pages.

@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .db import Base, engine
 from .settings import settings
-from .routes import auth, chat, clubs, dj, me, profile, streams
+from .routes import auth, chat, clubs, dj, internal_stream_events, me, profile, streams
 
 app = FastAPI(title="DJ Streams API", version="0.1.0")
 
@@ -23,6 +23,7 @@ app.include_router(dj.router, prefix="/api")
 app.include_router(clubs.router, prefix="/api")
 app.include_router(profile.router, prefix="/api")
 app.include_router(streams.router, prefix="/api")
+app.include_router(internal_stream_events.router, prefix="/api")
 app.include_router(chat.router)
 
 
