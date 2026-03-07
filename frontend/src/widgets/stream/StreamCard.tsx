@@ -5,7 +5,20 @@ import { Badge } from "../../shared/ui/Badge";
 import { Button } from "../../shared/ui/Button";
 import type { StreamWithMeta } from "../../types";
 
+function formatStartedAt(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Unknown";
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
 export function StreamCard({ stream }: { stream: StreamWithMeta }) {
+  const peakViewers = stream.peakViewers ?? stream.viewers;
+
   return (
     <motion.article className="stream-card ui-card" whileHover={{ scale: 1.02 }} transition={{ duration: 0.15 }}>
       <Link to={`/watch/${stream.id}`} className="stream-thumb">
@@ -25,7 +38,9 @@ export function StreamCard({ stream }: { stream: StreamWithMeta }) {
             <MoreHorizontal size={16} />
           </Button>
         </div>
-        <p className="stream-dj">{stream.owner_name}</p>
+        <p className="stream-dj">@{stream.owner_username || stream.owner_name}</p>
+        <p className="muted">Viewers: {stream.viewers} | Peak: {peakViewers}</p>
+        <p className="muted">Started: {formatStartedAt(stream.startedAt)}</p>
         <p className="muted">Club: {stream.club}</p>
         <p className="stream-now-playing">Now Playing: {stream.current_track || "не указан"}</p>
         <div className="stream-tags">

@@ -1,21 +1,66 @@
 import { useQuery } from "@tanstack/react-query";
 import { Radio } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { browseApi } from "../api";
 import { Button } from "../shared/ui/Button";
-import { FiltersBar } from "../widgets/stream/FiltersBar";
 import { StreamGrid } from "../widgets/stream/StreamGrid";
-import type { StreamFilters, StreamSort } from "../types";
+import type { StreamWithMeta } from "../types";
+
+const SECTION_LIMIT = 8;
+
+function applyViewerCounts(streams: StreamWithMeta[], viewerCounts: Record<number, number>): StreamWithMeta[] {
+  return streams.map((stream) => {
+    const refreshedViewers = viewerCounts[stream.id];
+    if (refreshedViewers === undefined) return stream;
+    return {
+      ...stream,
+      viewer_count: refreshedViewers,
+      viewers: refreshedViewers,
+    };
+  });
+}
 
 export function BrowsePage() {
-  const [filters, setFilters] = useState<StreamFilters>({});
-  const [sort, setSort] = useState<StreamSort>("recommended");
+  const [viewerCounts, setViewerCounts] = useState<Record<number, number>>({});
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["browse-streams", filters, sort],
-    queryFn: () => browseApi.streams(filters, sort),
+    queryKey: ["browse-discover"],
+    queryFn: () => browseApi.discoverStreams(20),
   });
+
+  useEffect(() => {
+    if (!data?.length) return;
+
+    let isMounted = true;
+
+    const refreshCounts = async () => {
+      try {
+        const counts = await browseApi.refreshViewerCounts(data.map((stream) => stream.id));
+        if (isMounted) {
+          setViewerCounts(counts);
+        }
+      } catch {
+        // Keep previous counts if refresh fails.
+      }
+    };
+
+    refreshCounts();
+    const intervalId = window.setInterval(refreshCounts, 10_000);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(intervalId);
+    };
+  }, [data]);
+
+  const streams = useMemo(() => applyViewerCounts(data || [], viewerCounts), [data, viewerCounts]);
+  const trendingNow = useMemo(() => [...streams].sort((a, b) => (b.score || 0) - (a.score || 0)).slice(0, SECTION_LIMIT), [streams]);
+  const liveDjs = useMemo(() => [...streams].sort((a, b) => b.viewers - a.viewers).slice(0, SECTION_LIMIT), [streams]);
+  const justStarted = useMemo(
+    () => [...streams].sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()).slice(0, SECTION_LIMIT),
+    [streams]
+  );
 
   return (
     <section className="page-stack">
@@ -35,17 +80,48 @@ export function BrowsePage() {
         </div>
         <div className="hero-stat">
           <Radio size={18} />
-          <strong>{data?.length || 0}</strong>
+          <strong>{streams.length}</strong>
           <span>live сетов</span>
         </div>
       </div>
 
-      <FiltersBar filters={filters} sort={sort} onChangeFilters={setFilters} onChangeSort={setSort} />
-
       {error && <p className="error">Не удалось загрузить эфиры. Обновите страницу.</p>}
-      <div id="live-grid">
-        <StreamGrid streams={data || []} loading={isLoading} />
-      </div>
+
+      {isLoading && (
+        <div id="live-grid" className="page-stack">
+          <section className="page-stack">
+            <h2>Trending now</h2>
+            <StreamGrid streams={[]} loading />
+          </section>
+          <section className="page-stack">
+            <h2>Live DJs</h2>
+            <StreamGrid streams={[]} loading />
+          </section>
+          <section className="page-stack">
+            <h2>Just started</h2>
+            <StreamGrid streams={[]} loading />
+          </section>
+        </div>
+      )}
+
+      {!isLoading && !streams.length && <p className="muted">No DJs are live right now.</p>}
+
+      {!isLoading && streams.length > 0 && (
+        <div id="live-grid" className="page-stack">
+          <section className="page-stack">
+            <h2>Trending now</h2>
+            <StreamGrid streams={trendingNow} loading={false} />
+          </section>
+          <section className="page-stack">
+            <h2>Live DJs</h2>
+            <StreamGrid streams={liveDjs} loading={false} />
+          </section>
+          <section className="page-stack">
+            <h2>Just started</h2>
+            <StreamGrid streams={justStarted} loading={false} />
+          </section>
+        </div>
+      )}
     </section>
   );
 }

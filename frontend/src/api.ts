@@ -7,6 +7,7 @@ import type {
   ClubPermissionsMe,
   DJProfile,
   Genre,
+  DiscoverStream,
   InvitePreflight,
   Profile,
   PublicStream,
@@ -16,6 +17,7 @@ import type {
   StreamSort,
   StreamWithMeta,
   TokenResponse,
+  ViewerCountResponse,
 } from "./types";
 import { slugify } from "./shared/lib/utils";
 
@@ -168,6 +170,8 @@ export const streamApi = {
   activeByUsername: (username: string) => request<ActiveStreamLookup>(`/streams/by-username/${username}/active`),
   patchById: (id: number, payload: StreamPatchPayload) => request<Stream>(`/streams/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
   live: () => request<PublicStream[]>("/streams/live"),
+  discover: (limit = 20) => request<DiscoverStream[]>(`/streams/discover?limit=${limit}`),
+  viewerCount: (id: number) => request<ViewerCountResponse>(`/streams/${id}/viewer-count`),
 };
 
 const cities = ["Москва", "Санкт-Петербург", "Казань", "Минск", "Берлин"];
@@ -235,6 +239,51 @@ function sortStreams(streams: StreamWithMeta[], sort: StreamSort): StreamWithMet
 }
 
 export const browseApi = {
+  async discoverStreams(limit = 20): Promise<StreamWithMeta[]> {
+    const ranked = await streamApi.discover(limit);
+    return ranked.map((item, index) => ({
+      id: item.stream_id,
+      owner_id: 0,
+      owner_username: item.dj_username,
+      owner_name: item.dj_username,
+      owner_avatar: "",
+      title: `Live set by ${item.dj_username}`,
+      description: "",
+      genre: "",
+      current_track: "",
+      visibility: "public",
+      club_id: null,
+      club_slug: null,
+      club_title: null,
+      is_live: true,
+      viewer_count: item.viewer_count,
+      hls_url: "",
+      whep_url: "",
+      created_at: item.started_at,
+      updated_at: item.started_at,
+      username: item.dj_username,
+      city: cities[index % cities.length],
+      viewers: item.viewer_count,
+      peakViewers: item.peak_viewers,
+      score: item.score,
+      startedAt: item.started_at,
+      latency: "normal",
+      language: languages[index % languages.length],
+      club: "Unknown Club",
+    }));
+  },
+
+  async refreshViewerCounts(streamIds: number[]): Promise<Record<number, number>> {
+    const uniqueIds = Array.from(new Set(streamIds));
+    const rows = await Promise.all(
+      uniqueIds.map(async (streamId) => {
+        const response = await streamApi.viewerCount(streamId);
+        return [streamId, response.viewer_count] as const;
+      })
+    );
+    return Object.fromEntries(rows);
+  },
+
   async streams(filters: StreamFilters = {}, sort: StreamSort = "recommended") {
     const list = await streamApi.live();
     const enriched = list.map(enrichStream);

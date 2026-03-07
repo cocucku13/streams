@@ -81,6 +81,19 @@ export type Stream = {
 
 export type PublicStream = Omit<Stream, "ingest_server" | "stream_key">;
 
+export type DiscoverStream = {
+  stream_id: number;
+  dj_username: string;
+  viewer_count: number;
+  peak_viewers: number;
+  started_at: string;
+  score: number;
+};
+
+export type ViewerCountResponse = {
+  viewer_count: number;
+};
+
 export type StreamPatchPayload = {
   title: string;
   description: string;
@@ -196,6 +209,8 @@ export type StreamWithMeta = PublicStream & {
   username: string;
   city: string;
   viewers: number;
+  peakViewers?: number;
+  score?: number;
   startedAt: string;
   latency: "low" | "normal";
   language: string;
