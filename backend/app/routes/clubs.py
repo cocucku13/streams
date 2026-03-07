@@ -3,7 +3,7 @@ import re
 import secrets
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
@@ -18,6 +18,7 @@ from ..permissions.club_policy import (
     get_active_membership,
 )
 from ..permissions.errors import forbidden
+from ..services.media_storage import clear_club_images, delete_media_file_by_url, save_club_image
 
 router = APIRouter(tags=["clubs"])
 
@@ -30,6 +31,12 @@ SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]{1,118}[a-z0-9]$")
 
 def _social_links(raw: dict | None) -> schemas.SocialLinks:
     return schemas.SocialLinks(**(raw or {}))
+
+
+def _absolute_media_url(request: Request, url: str) -> str:
+    if url.startswith("http://") or url.startswith("https://"):
+        return url
+    return f"{str(request.base_url).rstrip('/')}{url}"
 
 
 def _can_manage_club(club_id: int, user_id: int, db: Session) -> bool:
@@ -120,6 +127,8 @@ def _club_to_response(club: models.Club, db: Session) -> schemas.ClubResponse:
         title=club.title,
         city=club.city,
         address=club.address,
+        lat=club.lat,
+        lng=club.lng,
         description=club.description,
         avatar_url=club.avatar_url,
         cover_url=club.cover_url,
@@ -207,12 +216,14 @@ def create_club(
         title=payload.title,
         city=payload.city,
         address=payload.address,
+        lat=payload.lat,
+        lng=payload.lng,
         description=payload.description,
         avatar_url=payload.avatar_url,
         cover_url=payload.cover_url,
         socials=payload.socials.model_dump(),
         owner_user_id=current_user.id,
-        visibility=payload.visibility,
+        visibility="public",
     )
     db.add(club)
     db.commit()
@@ -273,17 +284,154 @@ def patch_club(
     club.title = payload.title
     club.city = payload.city
     club.address = payload.address
+    if payload.lat is not None and payload.lng is not None:
+        club.lat = payload.lat
+        club.lng = payload.lng
     club.description = payload.description
     club.avatar_url = payload.avatar_url
     club.cover_url = payload.cover_url
     club.socials = payload.socials.model_dump()
-    club.visibility = payload.visibility
+    club.visibility = "public"
 
     db.add(club)
     db.commit()
     db.refresh(club)
 
     return _club_to_response(club, db)
+
+
+@router.post("/clubs/{club_id}/avatar", response_model=schemas.MediaUploadResponse)
+async def upload_club_avatar(
+    club_id: int,
+    request: Request,
+    file: UploadFile = File(...),
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    club = db.query(models.Club).filter(models.Club.id == club_id).first()
+    if not club:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Club not found")
+
+    if not can_edit_club_profile(current_user, club, db):
+        raise forbidden("Not enough permissions")
+
+    upload_bytes = await file.read()
+    previous_avatar_url = club.avatar_url
+    relative_url = save_club_image(
+        club_id=club.id,
+        kind="avatar",
+        upload_bytes=upload_bytes,
+        content_type=file.content_type or "",
+    )
+    absolute_url = _absolute_media_url(request, relative_url)
+
+    club.avatar_url = absolute_url
+    db.add(
+        models.MediaAsset(
+            owner_type="club",
+            owner_id=club.id,
+            type="avatar",
+            url=absolute_url,
+        )
+    )
+    db.add(club)
+    db.commit()
+
+    if previous_avatar_url and previous_avatar_url != absolute_url:
+        delete_media_file_by_url(previous_avatar_url)
+
+    return schemas.MediaUploadResponse(url=absolute_url)
+
+
+@router.post("/clubs/{club_id}/cover", response_model=schemas.MediaUploadResponse)
+async def upload_club_cover(
+    club_id: int,
+    request: Request,
+    file: UploadFile = File(...),
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    club = db.query(models.Club).filter(models.Club.id == club_id).first()
+    if not club:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Club not found")
+
+    if not can_edit_club_profile(current_user, club, db):
+        raise forbidden("Not enough permissions")
+
+    upload_bytes = await file.read()
+    previous_cover_url = club.cover_url
+    relative_url = save_club_image(
+        club_id=club.id,
+        kind="cover",
+        upload_bytes=upload_bytes,
+        content_type=file.content_type or "",
+    )
+    absolute_url = _absolute_media_url(request, relative_url)
+
+    club.cover_url = absolute_url
+    db.add(
+        models.MediaAsset(
+            owner_type="club",
+            owner_id=club.id,
+            type="cover",
+            url=absolute_url,
+        )
+    )
+    db.add(club)
+    db.commit()
+
+    if previous_cover_url and previous_cover_url != absolute_url:
+        delete_media_file_by_url(previous_cover_url)
+
+    return schemas.MediaUploadResponse(url=absolute_url)
+
+
+@router.delete("/clubs/{club_id}/avatar", response_model=schemas.MediaUploadResponse)
+def reset_club_avatar(
+    club_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    club = db.query(models.Club).filter(models.Club.id == club_id).first()
+    if not club:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Club not found")
+
+    if not can_edit_club_profile(current_user, club, db):
+        raise forbidden("Not enough permissions")
+
+    previous_avatar_url = club.avatar_url
+    club.avatar_url = ""
+
+    clear_club_images(club_id=club.id, kind="avatar")
+    delete_media_file_by_url(previous_avatar_url)
+
+    db.add(club)
+    db.commit()
+    return schemas.MediaUploadResponse(url="")
+
+
+@router.delete("/clubs/{club_id}/cover", response_model=schemas.MediaUploadResponse)
+def reset_club_cover(
+    club_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    club = db.query(models.Club).filter(models.Club.id == club_id).first()
+    if not club:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Club not found")
+
+    if not can_edit_club_profile(current_user, club, db):
+        raise forbidden("Not enough permissions")
+
+    previous_cover_url = club.cover_url
+    club.cover_url = ""
+
+    clear_club_images(club_id=club.id, kind="cover")
+    delete_media_file_by_url(previous_cover_url)
+
+    db.add(club)
+    db.commit()
+    return schemas.MediaUploadResponse(url="")
 
 
 @router.get("/clubs/{club_id}/members", response_model=list[schemas.ClubMemberResponse])

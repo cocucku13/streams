@@ -117,6 +117,8 @@ type ClubResponse = {
   title: string;
   city: string;
   address: string;
+  lat: number | null;
+  lng: number | null;
   description: string;
   avatar_url: string;
   cover_url: string;
@@ -135,6 +137,8 @@ function mapClubResponse(club: ClubResponse): Club {
     name: club.title,
     city: club.city,
     address: club.address,
+    lat: club.lat,
+    lng: club.lng,
     description: club.description,
     avatar_url: club.avatar_url,
     cover_url: club.cover_url,
@@ -157,6 +161,8 @@ export const clubApi = {
     title: string;
     city: string;
     address: string;
+    lat: number | null;
+    lng: number | null;
     description: string;
     avatar_url: string;
     cover_url: string;
@@ -169,6 +175,8 @@ export const clubApi = {
       title: string;
       city: string;
       address: string;
+      lat?: number | null;
+      lng?: number | null;
       description: string;
       avatar_url: string;
       cover_url: string;
@@ -176,6 +184,18 @@ export const clubApi = {
       visibility: "public" | "unlisted";
     }
   ) => mapClubResponse(await request<ClubResponse>(`/clubs/${clubId}`, { method: "PATCH", body: JSON.stringify(payload) })),
+  uploadAvatar: (clubId: number, file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return requestFormData<{ url: string }>(`/clubs/${clubId}/avatar`, formData);
+  },
+  uploadCover: (clubId: number, file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return requestFormData<{ url: string }>(`/clubs/${clubId}/cover`, formData);
+  },
+  resetAvatar: (clubId: number) => request<{ url: string }>(`/clubs/${clubId}/avatar`, { method: "DELETE" }),
+  resetCover: (clubId: number) => request<{ url: string }>(`/clubs/${clubId}/cover`, { method: "DELETE" }),
   members: (clubId: number) => request<ClubMember[]>(`/clubs/${clubId}/members`),
   invite: (clubId: number, payload: { invited_username?: string; invited_email?: string; role_to_assign: "dj" | "moderator" | "admin" }) =>
     request<ClubInvite>(`/clubs/${clubId}/invites`, { method: "POST", body: JSON.stringify(payload) }),

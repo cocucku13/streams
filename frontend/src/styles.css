@@ -3880,6 +3880,38 @@ label {
       white-space: nowrap;
     }
 
+    .club-create-map {
+      width: 100%;
+      height: 400px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.12);
+      overflow: hidden;
+      background: rgba(255,255,255,0.03);
+    }
+
+    .club-create-page {
+      max-width: none;
+      width: 100%;
+    }
+
+    .club-create-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.65fr) minmax(340px, 1fr);
+      gap: 14px;
+      width: 100%;
+      align-items: start;
+    }
+
+    .club-create-main-panel,
+    .club-create-side-panel {
+      min-width: 0;
+    }
+
+    .club-create-side-panel {
+      position: sticky;
+      top: 84px;
+    }
+
     @media (max-width: 1024px) {
       .clubv2-hero-body {
         grid-template-columns: auto minmax(0, 1fr);
@@ -3892,6 +3924,14 @@ label {
 
       .clubv2-grid {
         grid-template-columns: 1fr;
+      }
+
+      .club-create-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .club-create-side-panel {
+        position: static;
       }
     }
 

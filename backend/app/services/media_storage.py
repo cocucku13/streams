@@ -50,8 +50,24 @@ def _kind_directory(*, user_id: int, kind: str) -> Path:
     return target_dir
 
 
+def _club_kind_directory(*, club_id: int, kind: str) -> Path:
+    if kind not in {"avatar", "cover"}:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Неизвестный тип изображения")
+    media_root = _ensure_media_root()
+    target_dir = media_root / "club" / str(club_id) / kind
+    target_dir.mkdir(parents=True, exist_ok=True)
+    return target_dir
+
+
 def clear_profile_images(*, user_id: int, kind: str) -> None:
     target_dir = _kind_directory(user_id=user_id, kind=kind)
+    for child in target_dir.iterdir():
+        if child.is_file():
+            child.unlink(missing_ok=True)
+
+
+def clear_club_images(*, club_id: int, kind: str) -> None:
+    target_dir = _club_kind_directory(club_id=club_id, kind=kind)
     for child in target_dir.iterdir():
         if child.is_file():
             child.unlink(missing_ok=True)
@@ -115,3 +131,37 @@ def save_profile_image(*, user_id: int, kind: str, upload_bytes: bytes, content_
         image.save(target_path, format="WEBP", quality=88, method=6)
 
     return f"{settings.media_url_prefix}/dj/{user_id}/{kind}/{filename}"
+
+
+def save_club_image(*, club_id: int, kind: str, upload_bytes: bytes, content_type: str) -> str:
+    if kind not in {"avatar", "cover"}:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Неизвестный тип изображения")
+
+    extension = _validate_upload(upload_bytes, content_type)
+
+    try:
+        image = Image.open(BytesIO(upload_bytes))
+        image = ImageOps.exif_transpose(image)
+    except (UnidentifiedImageError, OSError) as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Некорректный файл изображения") from exc
+
+    max_size = (1024, 1024) if kind == "avatar" else (2560, 1440)
+    image.thumbnail(max_size, Image.Resampling.LANCZOS)
+
+    if extension == "jpg":
+        image = image.convert("RGB")
+
+    target_dir = _club_kind_directory(club_id=club_id, kind=kind)
+    clear_club_images(club_id=club_id, kind=kind)
+
+    filename = f"{uuid4().hex}.{extension}"
+    target_path = target_dir / filename
+
+    if extension == "jpg":
+        image.save(target_path, format="JPEG", quality=88, optimize=True)
+    elif extension == "png":
+        image.save(target_path, format="PNG", optimize=True)
+    else:
+        image.save(target_path, format="WEBP", quality=88, method=6)
+
+    return f"{settings.media_url_prefix}/club/{club_id}/{kind}/{filename}"

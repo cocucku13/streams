@@ -7,6 +7,7 @@ import { BrowsePage } from "./pages/BrowsePage";
 import { ClubPage } from "./pages/ClubPage";
 import { ClubStudioInvitesPage } from "./pages/ClubStudioInvitesPage";
 import { ClubStudioPage } from "./pages/ClubStudioPage";
+import { ClubCreatePage } from "./pages/ClubCreatePage";
 import { ClubsPage } from "./pages/ClubsPage";
 import { DashboardIntegrationsPage } from "./pages/DashboardIntegrationsPage";
 import { DashboardLandingPage } from "./pages/DashboardLandingPage";
@@ -43,6 +44,14 @@ export default function App() {
           <Route path="/directory" element={<DirectoryPage />} />
           <Route path="/directory/:genre" element={<GenrePage />} />
           <Route path="/clubs" element={<ClubsPage />} />
+          <Route
+            path="/clubs/create"
+            element={
+              <RequireAuth>
+                <ClubCreatePage />
+              </RequireAuth>
+            }
+          />
           <Route path="/club/:slug" element={<ClubPage />} />
           <Route path="/dj/:username" element={<DJProfilePage />} />
           <Route path="/channel/:username" element={<LegacyChannelRedirect />} />

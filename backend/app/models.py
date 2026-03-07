@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, JSON, String, Text
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, JSON, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .db import Base
@@ -100,6 +100,8 @@ class Club(Base):
     title: Mapped[str] = mapped_column(String(150), index=True)
     city: Mapped[str] = mapped_column(String(120), default="")
     address: Mapped[str] = mapped_column(String(200), default="")
+    lat: Mapped[float | None] = mapped_column(Float, nullable=True)
+    lng: Mapped[float | None] = mapped_column(Float, nullable=True)
     description: Mapped[str] = mapped_column(Text, default="")
     avatar_url: Mapped[str] = mapped_column(String(255), default="")
     cover_url: Mapped[str] = mapped_column(String(255), default="")

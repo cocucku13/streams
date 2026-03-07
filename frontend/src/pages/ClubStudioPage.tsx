@@ -1,15 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Camera, X } from "lucide-react";
 import { useState } from "react";
 import { Link, Outlet, useLocation, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { clubApi } from "../api";
+import { useSafeImageUrl } from "../shared/hooks/useSafeImageUrl";
 import { cn } from "../shared/lib/utils";
 import { Button } from "../shared/ui/Button";
 import { Card } from "../shared/ui/Card";
 import { ForbiddenState } from "../shared/ui/ForbiddenState";
 import { Input } from "../shared/ui/Input";
 import { Modal } from "../shared/ui/Modal";
-import { Select } from "../shared/ui/Select";
 import { Textarea } from "../shared/ui/Textarea";
 import { WorkspaceHeader } from "../shared/ui/WorkspaceHeader";
 import { WorkspaceStateCard } from "../shared/ui/WorkspaceStateCard";
@@ -116,7 +117,6 @@ export function ClubStudioPage() {
                 description={club.description || ""}
                 avatarUrl={club.avatar_url || ""}
                 coverUrl={club.cover_url || ""}
-                visibility={club.visibility || "public"}
                 socials={club.socials}
                 isPending={profileMutation.isPending}
                 onSave={(payload) => profileMutation.mutate([club.id, payload])}
@@ -154,7 +154,7 @@ export function ClubStudioPage() {
 
           <WorkspaceStateCard
             title="Дополнительные настройки"
-            description={`Галерея и расширенные параметры клуба будут добавлены позже. Текущая видимость клуба: ${club.visibility}.`}
+            description="Галерея и расширенные параметры клуба будут добавлены позже."
           />
         </>
       )}
@@ -170,7 +170,6 @@ function ClubProfileEditModal({
   description,
   avatarUrl,
   coverUrl,
-  visibility,
   socials,
   isPending,
   onSave,
@@ -182,7 +181,6 @@ function ClubProfileEditModal({
   description: string;
   avatarUrl: string;
   coverUrl: string;
-  visibility: "public" | "unlisted";
   socials:
     | {
         telegram: string;
@@ -205,7 +203,7 @@ function ClubProfileEditModal({
     description: string;
     avatar_url: string;
     cover_url: string;
-    visibility: "public" | "unlisted";
+    visibility: "public";
     socials: {
       telegram: string;
       instagram: string;
@@ -221,10 +219,64 @@ function ClubProfileEditModal({
   }) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const queryClient = useQueryClient();
+  const [avatarDraftUrl, setAvatarDraftUrl] = useState(avatarUrl);
+  const [coverDraftUrl, setCoverDraftUrl] = useState(coverUrl);
+
+  const safeAvatarUrl = useSafeImageUrl(avatarDraftUrl);
+  const safeCoverUrl = useSafeImageUrl(coverDraftUrl);
+
+  const avatarUploadMutation = useMutation({
+    mutationFn: (file: File) => clubApi.uploadAvatar(clubId, file),
+    onSuccess: async ({ url }) => {
+      setAvatarDraftUrl(url);
+      await queryClient.invalidateQueries({ queryKey: ["club-studio", clubId] });
+      toast.success("Аватар клуба обновлен");
+    },
+    onError: () => toast.error("Не удалось загрузить аватар клуба"),
+  });
+
+  const coverUploadMutation = useMutation({
+    mutationFn: (file: File) => clubApi.uploadCover(clubId, file),
+    onSuccess: async ({ url }) => {
+      setCoverDraftUrl(url);
+      await queryClient.invalidateQueries({ queryKey: ["club-studio", clubId] });
+      toast.success("Обложка клуба обновлена");
+    },
+    onError: () => toast.error("Не удалось загрузить обложку клуба"),
+  });
+
+  const resetAvatarMutation = useMutation({
+    mutationFn: () => clubApi.resetAvatar(clubId),
+    onSuccess: async () => {
+      setAvatarDraftUrl("");
+      await queryClient.invalidateQueries({ queryKey: ["club-studio", clubId] });
+      toast.success("Аватар клуба сброшен");
+    },
+    onError: () => toast.error("Не удалось сбросить аватар клуба"),
+  });
+
+  const resetCoverMutation = useMutation({
+    mutationFn: () => clubApi.resetCover(clubId),
+    onSuccess: async () => {
+      setCoverDraftUrl("");
+      await queryClient.invalidateQueries({ queryKey: ["club-studio", clubId] });
+      toast.success("Обложка клуба сброшена");
+    },
+    onError: () => toast.error("Не удалось сбросить обложку клуба"),
+  });
 
   return (
     <>
-      <Button onClick={() => setOpen(true)}>Редактировать профиль</Button>
+      <Button
+        onClick={() => {
+          setAvatarDraftUrl(avatarUrl);
+          setCoverDraftUrl(coverUrl);
+          setOpen(true);
+        }}
+      >
+        Редактировать профиль
+      </Button>
       <Modal
         open={open}
         onClose={() => setOpen(false)}
@@ -251,9 +303,9 @@ function ClubProfileEditModal({
               city: String(form.get("city") || ""),
               address: String(form.get("address") || ""),
               description: String(form.get("description") || ""),
-              avatar_url: String(form.get("avatar_url") || ""),
-              cover_url: String(form.get("cover_url") || ""),
-              visibility: String(form.get("visibility") || "public") as "public" | "unlisted",
+              avatar_url: avatarDraftUrl,
+              cover_url: coverDraftUrl,
+              visibility: "public",
               socials: {
                 telegram: String(form.get("telegram") || ""),
                 instagram: String(form.get("instagram") || ""),
@@ -287,19 +339,55 @@ function ClubProfileEditModal({
             <Textarea name="description" rows={4} defaultValue={description} />
           </label>
           <label>
-            URL аватара
-            <Input name="avatar_url" defaultValue={avatarUrl} />
+            Аватар клуба
+            <div className="row" style={{ gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+              <div className="dp-editor-avatar" style={safeAvatarUrl ? { backgroundImage: `url(${safeAvatarUrl})` } : undefined}>
+                {!safeAvatarUrl ? title.slice(0, 1).toUpperCase() : null}
+                <label className="dp-upload-icon" title="Загрузить аватар">
+                  <Camera size={14} />
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    hidden
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (!file) return;
+                      avatarUploadMutation.mutate(file);
+                    }}
+                  />
+                </label>
+                {safeAvatarUrl ? (
+                  <button className="dp-upload-icon dp-upload-icon--secondary" type="button" title="Сбросить аватар" onClick={() => resetAvatarMutation.mutate()}>
+                    <X size={14} />
+                  </button>
+                ) : null}
+              </div>
+              <span className="muted">Изображение загружается сразу на backend</span>
+            </div>
           </label>
           <label>
-            URL обложки
-            <Input name="cover_url" defaultValue={coverUrl} />
-          </label>
-          <label>
-            Видимость
-            <Select name="visibility" defaultValue={visibility}>
-              <option value="public">Публичный</option>
-              <option value="unlisted">По ссылке</option>
-            </Select>
+            Обложка клуба
+            <div className="dp-editor-cover" style={safeCoverUrl ? { backgroundImage: `url(${safeCoverUrl})` } : undefined}>
+              <label className="dp-upload-btn" title="Загрузить обложку">
+                <Camera size={15} />
+                Обложка
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  hidden
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (!file) return;
+                    coverUploadMutation.mutate(file);
+                  }}
+                />
+              </label>
+              {safeCoverUrl ? (
+                <button className="dp-upload-btn dp-upload-btn--secondary" type="button" onClick={() => resetCoverMutation.mutate()}>
+                  Сбросить
+                </button>
+              ) : null}
+            </div>
           </label>
           <label>
             Telegram

@@ -243,6 +243,8 @@ class ClubCreateRequest(BaseModel):
     title: str = Field(min_length=2, max_length=150)
     city: str = Field(default="", max_length=120)
     address: str = Field(default="", max_length=200)
+    lat: float | None = Field(default=None, ge=-90, le=90)
+    lng: float | None = Field(default=None, ge=-180, le=180)
     description: str = Field(default="", max_length=1500)
     avatar_url: str = Field(default="", max_length=255)
     cover_url: str = Field(default="", max_length=255)
@@ -254,6 +256,8 @@ class ClubUpdateRequest(BaseModel):
     title: str = Field(min_length=2, max_length=150)
     city: str = Field(default="", max_length=120)
     address: str = Field(default="", max_length=200)
+    lat: float | None = Field(default=None, ge=-90, le=90)
+    lng: float | None = Field(default=None, ge=-180, le=180)
     description: str = Field(default="", max_length=1500)
     avatar_url: str = Field(default="", max_length=255)
     cover_url: str = Field(default="", max_length=255)
@@ -304,6 +308,8 @@ class ClubResponse(BaseModel):
     title: str
     city: str
     address: str
+    lat: float | None
+    lng: float | None
     description: str
     avatar_url: str
     cover_url: str

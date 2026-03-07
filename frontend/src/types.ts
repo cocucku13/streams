@@ -119,6 +119,8 @@ export type Club = {
   name: string;
   city: string;
   address?: string;
+  lat?: number | null;
+  lng?: number | null;
   description?: string;
   avatar_url?: string;
   cover_url?: string;
