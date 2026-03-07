@@ -1,5 +1,3 @@
-from datetime import datetime, timezone
-
 from sqlalchemy.orm import Session
 
 from app import models
@@ -32,7 +30,6 @@ def _event_payload(event: str, stream_key: str) -> dict[str, str]:
     return {
         "event": event,
         "stream_key": stream_key,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 

@@ -182,7 +182,7 @@ class StreamSessionResponse(BaseModel):
 class StreamEventRequest(BaseModel):
     event: Literal["stream_started", "stream_ended"]
     stream_key: str = Field(min_length=8, max_length=128)
-    timestamp: datetime
+    timestamp: datetime | None = None
 
 
 class InviteClubSummary(BaseModel):

@@ -9,6 +9,7 @@ from ..deps import get_current_user
 from ..permissions.club_policy import get_active_membership
 from ..permissions.errors import forbidden, not_member
 from ..permissions.stream_policy import can_edit_stream
+from ..services.chat_service import get_recent_messages
 from ..services.stream_sessions import get_active_session
 
 router = APIRouter(prefix="/streams", tags=["streams"])
@@ -210,6 +211,23 @@ def list_stream_sessions(stream_id: int, db: Session = Depends(get_db)):
         .order_by(models.StreamSession.started_at.desc())
         .all()
     )
+
+
+@router.get("/{stream_id:int}/chat/history", response_model=list[schemas.ChatMessage])
+def get_stream_chat_history(stream_id: int, limit: int = 50, db: Session = Depends(get_db)):
+    stream = db.query(models.Stream).filter(models.Stream.id == stream_id).first()
+    if not stream:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Stream not found")
+
+    rows = get_recent_messages(stream_id, db, limit=limit)
+    return [
+        schemas.ChatMessage(
+            user=row.username,
+            message=row.message,
+            at=row.created_at,
+        )
+        for row in rows
+    ]
 
 
 @router.patch("/{stream_id:int}", response_model=schemas.StreamResponse)

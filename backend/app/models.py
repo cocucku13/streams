@@ -45,6 +45,20 @@ class Stream(Base):
     owner: Mapped[User] = relationship(back_populates="streams")
     settings: Mapped["StreamSettings | None"] = relationship(back_populates="stream", uselist=False)
     sessions: Mapped[list["StreamSession"]] = relationship(back_populates="stream")
+    chat_messages: Mapped[list["ChatMessage"]] = relationship(back_populates="stream")
+
+
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    stream_id: Mapped[int] = mapped_column(ForeignKey("streams.id"), index=True)
+    user_id: Mapped[int] = mapped_column(Integer, index=True, default=0)
+    username: Mapped[str] = mapped_column(String(50), default="Guest")
+    message: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+    stream: Mapped[Stream] = relationship(back_populates="chat_messages")
 
 
 class StreamSession(Base):

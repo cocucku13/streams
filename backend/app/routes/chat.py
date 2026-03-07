@@ -1,44 +1,56 @@
-from collections import defaultdict
-from datetime import datetime, timezone
+import asyncio
+import contextlib
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from sqlalchemy.orm import Session
+
+from ..db import SessionLocal
+from ..services.chat_service import normalize_and_validate_message, publish_message, store_message, subscribe_stream
 
 router = APIRouter(tags=["chat"])
 
 
-class ChatManager:
-    def __init__(self):
-        self.connections: dict[int, list[WebSocket]] = defaultdict(list)
-
-    async def connect(self, stream_id: int, websocket: WebSocket):
-        await websocket.accept()
-        self.connections[stream_id].append(websocket)
-
-    def disconnect(self, stream_id: int, websocket: WebSocket):
-        if websocket in self.connections[stream_id]:
-            self.connections[stream_id].remove(websocket)
-        if not self.connections[stream_id]:
-            del self.connections[stream_id]
-
-    async def broadcast(self, stream_id: int, payload: dict):
-        for connection in self.connections.get(stream_id, []):
-            await connection.send_json(payload)
-
-
-manager = ChatManager()
-
-
 @router.websocket("/ws/chat/{stream_id}")
 async def chat_socket(websocket: WebSocket, stream_id: int):
-    await manager.connect(stream_id, websocket)
+    await websocket.accept()
+
+    async def _forward_pubsub_messages() -> None:
+        async for payload in subscribe_stream(stream_id):
+            await websocket.send_json(payload)
+
+    pubsub_task = asyncio.create_task(_forward_pubsub_messages())
+
     try:
         while True:
             data = await websocket.receive_json()
-            message = {
-                "user": data.get("user", "Guest")[:30],
-                "message": data.get("message", "")[:300],
-                "at": datetime.now(timezone.utc).isoformat(),
+            username = str(data.get("user", "Guest") or "Guest")[:50]
+            try:
+                user_id = int(data.get("user_id", 0) or 0)
+            except (TypeError, ValueError):
+                user_id = 0
+            raw_message = str(data.get("message", ""))
+
+            try:
+                message_text = normalize_and_validate_message(stream_id, username, raw_message)
+            except ValueError as exc:
+                await websocket.send_json({"type": "error", "detail": str(exc)})
+                continue
+
+            db: Session = SessionLocal()
+            try:
+                stored = store_message(stream_id, user_id, message_text, db, username=username)
+            finally:
+                db.close()
+
+            payload = {
+                "user": stored.username,
+                "message": stored.message,
+                "at": stored.created_at.isoformat(),
             }
-            await manager.broadcast(stream_id, message)
+            await publish_message(stream_id, payload)
     except WebSocketDisconnect:
-        manager.disconnect(stream_id, websocket)
+        pass
+    finally:
+        pubsub_task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await pubsub_task

@@ -21,6 +21,7 @@ USER_TABLES = {
     "club_invites",
     "stream_settings",
     "media_assets",
+    "chat_messages",
 }
 
 

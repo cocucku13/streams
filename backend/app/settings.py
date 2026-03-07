@@ -22,6 +22,7 @@ class Settings:
     secret_key: str
     access_token_expire_minutes: int
     database_url: str
+    redis_url: str
     cors_allowed_origins: list[str]
     db_auto_create: bool
 
@@ -39,6 +40,7 @@ def _load_settings() -> Settings:
 
     access_token_expire_minutes = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", str(60 * 24 * 7)))
     database_url = os.getenv("DATABASE_URL", "sqlite:///./streams.db")
+    redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
 
     default_dev_origins = "http://localhost:5173,http://127.0.0.1:5173"
     cors_allowed_origins = _parse_csv(os.getenv("CORS_ALLOWED_ORIGINS", default_dev_origins))
@@ -57,6 +59,7 @@ def _load_settings() -> Settings:
         secret_key=secret_key,
         access_token_expire_minutes=access_token_expire_minutes,
         database_url=database_url,
+        redis_url=redis_url,
         cors_allowed_origins=cors_allowed_origins,
         db_auto_create=db_auto_create,
     )
