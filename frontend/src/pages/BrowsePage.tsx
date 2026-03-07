@@ -4,6 +4,7 @@ import { Music, Users } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { browseApi } from "../api";
+import { useSafeImageUrl } from "../shared/hooks/useSafeImageUrl";
 import { StreamGrid } from "../widgets/stream/StreamGrid";
 import type { StreamWithMeta } from "../types";
 
@@ -47,6 +48,7 @@ function FeaturedHero({ stream }: { stream: StreamWithMeta }) {
     const saveData = (navigator as NavigatorWithConnection).connection?.saveData === true;
     return !prefersReducedMotion && !saveData;
   }, [stream.hls_url]);
+  const safeOwnerAvatar = useSafeImageUrl(stream.owner_avatar || "");
 
   const clearWarmupTimer = useCallback(() => {
     if (warmupTimerRef.current !== null) {
@@ -184,7 +186,15 @@ function FeaturedHero({ stream }: { stream: StreamWithMeta }) {
 
           <div className="featured-dj-row">
             <div className="featured-dj-avatar">
-              {(stream.owner_name || stream.owner_username || "D").slice(0, 1).toUpperCase()}
+              {safeOwnerAvatar ? (
+                <img
+                  className="featured-dj-avatar-img"
+                  src={safeOwnerAvatar}
+                  alt={`Аватар ${stream.owner_name || stream.owner_username || "DJ"}`}
+                />
+              ) : (
+                (stream.owner_name || stream.owner_username || "D").slice(0, 1).toUpperCase()
+              )}
             </div>
             <div>
               <p className="featured-dj-name">{stream.owner_name || stream.owner_username}</p>

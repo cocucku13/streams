@@ -21,68 +21,71 @@ import { LiveAliasPage } from "./pages/LiveAliasPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { WatchPage } from "./pages/WatchPage";
+import { GlobalLivePlayerProvider } from "./widgets/player/GlobalLivePlayer";
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/auth" element={<AuthPage />} />
-      <Route
-        path="/invites/:token"
-        element={
-          <RequireAuth>
-            <InviteDecisionPage />
-          </RequireAuth>
-        }
-      />
-      <Route path="/404" element={<NotFoundPage />} />
-      <Route element={<AppShell />}>
-        <Route path="/" element={<BrowsePage />} />
-        <Route path="/discover" element={<Navigate to="/" replace />} />
-        <Route path="/directory" element={<DirectoryPage />} />
-        <Route path="/directory/:genre" element={<GenrePage />} />
-        <Route path="/clubs" element={<ClubsPage />} />
-        <Route path="/club/:slug" element={<ClubPage />} />
-        <Route path="/dj/:username" element={<DJProfilePage />} />
-        <Route path="/channel/:username" element={<LegacyChannelRedirect />} />
-        <Route path="/live/:username" element={<LiveAliasPage />} />
-        <Route path="/watch/:streamId" element={<WatchPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
-      </Route>
-
-      <Route
-        path="/dashboard"
-        element={
-          <RequireAuth>
-            <AppShell />
-          </RequireAuth>
-        }
-      >
-        <Route element={<DashboardLayout />}>
-          <Route index element={<DashboardLandingPage />} />
-          <Route path="profile" element={<DashboardProfilePage />} />
-          <Route path="stream" element={<DashboardStreamPage />} />
-          <Route path="moderation" element={<DashboardModerationPage />} />
-          <Route path="integrations" element={<DashboardIntegrationsPage />} />
+    <GlobalLivePlayerProvider>
+      <Routes>
+        <Route path="/auth" element={<AuthPage />} />
+        <Route
+          path="/invites/:token"
+          element={
+            <RequireAuth>
+              <InviteDecisionPage />
+            </RequireAuth>
+          }
+        />
+        <Route path="/404" element={<NotFoundPage />} />
+        <Route element={<AppShell />}>
+          <Route path="/" element={<BrowsePage />} />
+          <Route path="/discover" element={<Navigate to="/" replace />} />
+          <Route path="/directory" element={<DirectoryPage />} />
+          <Route path="/directory/:genre" element={<GenrePage />} />
+          <Route path="/clubs" element={<ClubsPage />} />
+          <Route path="/club/:slug" element={<ClubPage />} />
+          <Route path="/dj/:username" element={<DJProfilePage />} />
+          <Route path="/channel/:username" element={<LegacyChannelRedirect />} />
+          <Route path="/live/:username" element={<LiveAliasPage />} />
+          <Route path="/watch/:streamId" element={<WatchPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
         </Route>
-      </Route>
 
-      <Route
-        path="/club-studio/:clubId"
-        element={
-          <RequireAuth>
-            <AppShell />
-          </RequireAuth>
-        }
-      >
-        <Route element={<ClubStudioPage />}>
-          <Route path="invites" element={<ClubStudioInvitesPage />} />
+        <Route
+          path="/dashboard"
+          element={
+            <RequireAuth>
+              <AppShell />
+            </RequireAuth>
+          }
+        >
+          <Route element={<DashboardLayout />}>
+            <Route index element={<DashboardLandingPage />} />
+            <Route path="profile" element={<DashboardProfilePage />} />
+            <Route path="stream" element={<DashboardStreamPage />} />
+            <Route path="moderation" element={<DashboardModerationPage />} />
+            <Route path="integrations" element={<DashboardIntegrationsPage />} />
+          </Route>
         </Route>
-      </Route>
 
-      <Route path="/dashboard-legacy" element={<Navigate to="/dashboard" replace />} />
+        <Route
+          path="/club-studio/:clubId"
+          element={
+            <RequireAuth>
+              <AppShell />
+            </RequireAuth>
+          }
+        >
+          <Route element={<ClubStudioPage />}>
+            <Route path="invites" element={<ClubStudioInvitesPage />} />
+          </Route>
+        </Route>
 
-      <Route path="*" element={<Navigate to="/404" replace />} />
-    </Routes>
+        <Route path="/dashboard-legacy" element={<Navigate to="/dashboard" replace />} />
+
+        <Route path="*" element={<Navigate to="/404" replace />} />
+      </Routes>
+    </GlobalLivePlayerProvider>
   );
 }
 

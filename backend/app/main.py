@@ -1,7 +1,9 @@
 import warnings
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from .db import Base, engine
 from .settings import settings
@@ -25,6 +27,9 @@ app.include_router(profile.router, prefix="/api")
 app.include_router(streams.router, prefix="/api")
 app.include_router(internal_stream_events.router, prefix="/api")
 app.include_router(chat.router)
+
+Path(settings.media_root).mkdir(parents=True, exist_ok=True)
+app.mount(settings.media_url_prefix, StaticFiles(directory=settings.media_root), name="media")
 
 
 @app.on_event("startup")

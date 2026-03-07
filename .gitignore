@@ -51,6 +51,7 @@ backend/.coverage
 
 *wave*
 *.db
-
+*.tsbuildinfo
 /reports/
 /TODO.md
+*/media/*

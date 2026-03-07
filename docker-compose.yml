@@ -41,9 +41,13 @@ services:
     working_dir: /app
     volumes:
       - ./backend:/app
+      - ./backend/media:/app/media
     command: sh -c "pip install -r requirements.txt && python scripts/bootstrap_db.py && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     env_file:
       - ./.env
+    environment:
+      MEDIA_ROOT: /app/media
+      MEDIA_URL_PREFIX: /media
     ports:
       - "8000:8000"
     depends_on:

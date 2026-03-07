@@ -91,6 +91,10 @@ class DJProfileUpdateRequest(BaseModel):
     socials: SocialLinks = Field(default_factory=SocialLinks)
 
 
+class MediaUploadResponse(BaseModel):
+    url: str
+
+
 class ClubListItemResponse(BaseModel):
     id: int
     slug: str

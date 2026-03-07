@@ -25,6 +25,8 @@ class Settings:
     redis_url: str
     cors_allowed_origins: list[str]
     db_auto_create: bool
+    media_root: str
+    media_url_prefix: str
 
 
 def _load_settings() -> Settings:
@@ -53,6 +55,11 @@ def _load_settings() -> Settings:
     if db_auto_create and app_env == "production":
         raise RuntimeError("DB_AUTO_CREATE must be disabled in production")
 
+    media_root = (os.getenv("MEDIA_ROOT") or "/app/media").strip() or "/app/media"
+    media_url_prefix = (os.getenv("MEDIA_URL_PREFIX") or "/media").strip() or "/media"
+    if not media_url_prefix.startswith("/"):
+        media_url_prefix = f"/{media_url_prefix}"
+
     return Settings(
         app_env=app_env,
         debug=debug,
@@ -62,6 +69,8 @@ def _load_settings() -> Settings:
         redis_url=redis_url,
         cors_allowed_origins=cors_allowed_origins,
         db_auto_create=db_auto_create,
+        media_root=media_root,
+        media_url_prefix=media_url_prefix,
     )
 
 

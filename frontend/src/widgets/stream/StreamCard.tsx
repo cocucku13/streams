@@ -2,6 +2,7 @@ import Hls from "hls.js";
 import { Eye, Music } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { useSafeImageUrl } from "../../shared/hooks/useSafeImageUrl";
 import type { PublicStream, StreamWithMeta } from "../../types";
 
 const PREVIEW_START_DELAY_MS = 180;
@@ -32,6 +33,7 @@ export function StreamCard({ stream }: { stream: PublicStream | StreamWithMeta }
     const saveData = (navigator as NavigatorWithConnection).connection?.saveData === true;
     return !prefersReducedMotion && !saveData;
   }, [stream.hls_url]);
+  const safeOwnerAvatar = useSafeImageUrl(stream.owner_avatar || "");
 
   const clearPreviewDelay = useCallback(() => {
     if (startDelayRef.current !== null) {
@@ -262,7 +264,23 @@ export function StreamCard({ stream }: { stream: PublicStream | StreamWithMeta }
         <Link to={`/watch/${stream.id}`} className="stream-title-link">
           <h3 className="stream-title">{stream.title}</h3>
         </Link>
-        <p className="stream-dj-name">@{stream.owner_username || stream.owner_name}</p>
+
+        <div className="stream-dj-row">
+          <div
+            className="stream-dj-avatar"
+            style={safeOwnerAvatar ? { backgroundImage: `url(${safeOwnerAvatar})` } : undefined}
+          >
+            {!safeOwnerAvatar ? (stream.owner_name || stream.owner_username || "D").slice(0, 1).toUpperCase() : null}
+          </div>
+          {stream.owner_username ? (
+            <Link to={`/dj/${stream.owner_username}`} className="stream-dj-name stream-dj-name--link">
+              @{stream.owner_username}
+            </Link>
+          ) : (
+            <p className="stream-dj-name">{stream.owner_name}</p>
+          )}
+        </div>
+
         <p className="stream-viewer-count"><Eye size={12} strokeWidth={2} />{stream.viewer_count} зрителей</p>
 
         {stream.genre ? (

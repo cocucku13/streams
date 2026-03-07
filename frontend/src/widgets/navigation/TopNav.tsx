@@ -31,13 +31,6 @@ export function TopNav({ onToggleSidebar }: { onToggleSidebar: () => void }) {
           <Radio size={18} className="top-nav-brand-icon" />
           <span>DJ Streams</span>
         </Link>
-
-        <button
-          className="top-nav-text-btn"
-          onClick={() => navigate(isAuthed ? "/dashboard" : "/auth")}
-        >
-          Кабинет
-        </button>
       </div>
 
       <div className="top-nav-search-wrap">

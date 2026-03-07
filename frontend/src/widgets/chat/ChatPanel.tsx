@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import dayjs from "dayjs";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
 import { streamApi } from "../../api";
 import type { ChatMessage } from "../../types";
@@ -94,27 +94,11 @@ export function ChatPanel({ streamId, disabled }: { streamId: number; disabled?:
     setText("");
   }
 
-  const participantsApprox = useMemo(() => Math.max(1, Math.floor(messages.length / 5)), [messages.length]);
-
-  const statusDot =
-    connectionState === "connected"
-      ? "chat-status-dot--connected"
-      : connectionState === "connecting"
-        ? "chat-status-dot--connecting"
-        : "chat-status-dot--disconnected";
-
-  const statusLabel =
-    connectionState === "connected" ? "онлайн" : connectionState === "connecting" ? "подключение…" : "отключён";
-
   return (
     <div className="chat-panel">
       {/* Header */}
       <div className="chat-header">
-        <div className="chat-header-left">
-          <span className={`chat-status-dot ${statusDot}`} />
-          <h3 className="chat-title">Чат&nbsp;<span className="chat-title-status">• {statusLabel}</span></h3>
-        </div>
-        <span className="chat-participants">~{participantsApprox} в чате</span>
+        <h3 className="chat-title chat-title--broadcast">ЧАТ ТРАНСЛЯЦИИ</h3>
       </div>
 
       {/* Error bar (connection errors only) */}

@@ -53,6 +53,27 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+async function requestFormData<T>(path: string, formData: FormData): Promise<T> {
+  const token = getToken();
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new ApiError(response.status, body.detail || "Request failed");
+  }
+
+  return response.json() as Promise<T>;
+}
+
 export const authApi = {
   register: (payload: { username: string; password: string; display_name: string }) =>
     request<TokenResponse>("/auth/register", { method: "POST", body: JSON.stringify(payload) }),
@@ -76,6 +97,18 @@ export const djApi = {
     cover_url: string;
     socials: DJProfile["socials"];
   }) => request<DJProfile>("/dj/me", { method: "PATCH", body: JSON.stringify(payload) }),
+  uploadAvatar: (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return requestFormData<{ url: string }>("/dj/me/avatar", formData);
+  },
+  uploadCover: (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return requestFormData<{ url: string }>("/dj/me/cover", formData);
+  },
+  resetAvatar: () => request<{ url: string }>("/dj/me/avatar", { method: "DELETE" }),
+  resetCover: () => request<{ url: string }>("/dj/me/cover", { method: "DELETE" }),
 };
 
 type ClubResponse = {

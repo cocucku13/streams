@@ -1,4 +1,4 @@
-import { Building2, ChevronLeft, ChevronRight, Compass, Disc3, Heart, LayoutDashboard } from "lucide-react";
+import { Building2, ChevronLeft, ChevronRight, Compass, Disc3, LayoutDashboard } from "lucide-react";
 import type { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "../../shared/lib/utils";
@@ -6,9 +6,9 @@ import { cn } from "../../shared/lib/utils";
 type Item = { label: string; to?: string; icon: ReactNode; disabled?: boolean };
 
 const items: Item[] = [
-  { label: "Подписки", icon: <Heart size={16} />, disabled: true },
+  // { label: "Подписки", icon: <Heart size={16} />, disabled: true },
   { label: "Рекомендации", to: "/", icon: <Compass size={16} /> },
-  { label: "Жанры", to: "/directory", icon: <Disc3 size={16} /> },
+  // { label: "Жанры", to: "/directory", icon: <Disc3 size={16} /> },
   { label: "Клубы рядом", to: "/clubs", icon: <Building2 size={16} /> },
   { label: "Кабинет", to: "/dashboard", icon: <LayoutDashboard size={16} /> },
 ];

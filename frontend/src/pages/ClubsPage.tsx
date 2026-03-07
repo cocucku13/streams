@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { browseApi, clubApi, djApi } from "../api";
 import { useAuth } from "../shared/hooks/useAuth";
+import { useSafeImageUrl } from "../shared/hooks/useSafeImageUrl";
 import { Badge } from "../shared/ui/Badge";
 import { Button } from "../shared/ui/Button";
 import { Card } from "../shared/ui/Card";
@@ -19,9 +20,69 @@ type ActiveClubFromStreams = {
   nowPlaying: string;
 };
 
+type ClubCreateDraft = {
+  slug: string;
+  title: string;
+  city: string;
+  address: string;
+  description: string;
+  avatar_url: string;
+  cover_url: string;
+  visibility: "public" | "unlisted";
+};
+
+function createInitialDraft(): ClubCreateDraft {
+  return {
+    slug: "",
+    title: "",
+    city: "",
+    address: "",
+    description: "",
+    avatar_url: "",
+    cover_url: "",
+    visibility: "public",
+  };
+}
+
+function ClubCreateMockup({ draft }: { draft: ClubCreateDraft }) {
+  const safeAvatar = useSafeImageUrl(draft.avatar_url || "");
+  const safeCover = useSafeImageUrl(draft.cover_url || "");
+  const clubTitle = draft.title.trim() || "My Club";
+  const clubSlug = draft.slug.trim() || "my-club";
+
+  return (
+    <article className="club-create-mockup">
+      <div className="club-create-mockup-cover" style={safeCover ? { backgroundImage: `url(${safeCover})` } : undefined}>
+        <span className="club-create-mockup-badge">{draft.visibility === "public" ? "PUBLIC" : "UNLISTED"}</span>
+      </div>
+      <div className="club-create-mockup-body">
+        <div className="club-create-mockup-head">
+          <div className="club-create-mockup-avatar" style={safeAvatar ? { backgroundImage: `url(${safeAvatar})` } : undefined}>
+            {!safeAvatar ? clubTitle.slice(0, 1).toUpperCase() : null}
+          </div>
+          <div>
+            <h3>{clubTitle}</h3>
+            <p>@{clubSlug}</p>
+          </div>
+        </div>
+
+        <div className="club-create-mockup-meta">
+          <span>{draft.city || "Город не указан"}</span>
+          <span>{draft.address || "Адрес пока не указан"}</span>
+        </div>
+
+        <p className="club-create-mockup-description">
+          {draft.description || "Опишите атмосферу клуба, стиль музыки и vibe вашего комьюнити."}
+        </p>
+      </div>
+    </article>
+  );
+}
+
 export function ClubsPage() {
   const { isAuthed } = useAuth();
   const [createOpen, setCreateOpen] = useState(false);
+  const [createDraft, setCreateDraft] = useState<ClubCreateDraft>(createInitialDraft());
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -69,10 +130,13 @@ export function ClubsPage() {
     mutationFn: clubApi.create,
     onSuccess: async (club) => {
       setCreateOpen(false);
+      setCreateDraft(createInitialDraft());
       await queryClient.invalidateQueries({ queryKey: ["dj-me"] });
       navigate(`/club-studio/${club.id}`);
     },
   });
+
+  const canCreateClub = Boolean(createDraft.slug.trim() && createDraft.title.trim());
 
   return (
     <section className="page-stack">
@@ -81,7 +145,16 @@ export function ClubsPage() {
           <h1>Клубы</h1>
           <p className="muted">Список клубов построен по текущим активным эфирам.</p>
         </div>
-        {isAuthed ? <Button onClick={() => setCreateOpen(true)}>Создать клуб</Button> : null}
+        {isAuthed ? (
+          <Button
+            onClick={() => {
+              setCreateDraft(createInitialDraft());
+              setCreateOpen(true);
+            }}
+          >
+            Создать клуб
+          </Button>
+        ) : null}
       </div>
 
       {isAuthed ? (
@@ -135,92 +208,144 @@ export function ClubsPage() {
 
       <Modal
         open={createOpen}
-        onClose={() => setCreateOpen(false)}
+        onClose={() => {
+          setCreateOpen(false);
+          setCreateDraft(createInitialDraft());
+        }}
         title="Создать клуб"
         footer={
           <>
-            <Button variant="ghost" onClick={() => setCreateOpen(false)}>
-              Cancel
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setCreateOpen(false);
+                setCreateDraft(createInitialDraft());
+              }}
+            >
+              Отмена
             </Button>
-            <Button type="submit" form="create-club-form" disabled={createClubMutation.isPending}>
-              Create
+            <Button
+              onClick={() => {
+                createClubMutation.mutate({
+                  slug: createDraft.slug.trim().toLowerCase(),
+                  title: createDraft.title.trim(),
+                  city: createDraft.city.trim(),
+                  address: createDraft.address.trim(),
+                  description: createDraft.description.trim(),
+                  avatar_url: createDraft.avatar_url.trim(),
+                  cover_url: createDraft.cover_url.trim(),
+                  visibility: createDraft.visibility,
+                  socials: {
+                    telegram: "",
+                    instagram: "",
+                    vk: "",
+                    tiktok: "",
+                    youtube: "",
+                    soundcloud: "",
+                    beatport: "",
+                    yandex_music: "",
+                    spotify: "",
+                    website: "",
+                  },
+                });
+              }}
+              disabled={createClubMutation.isPending || !canCreateClub}
+            >
+              {createClubMutation.isPending ? "Создаём..." : "Создать клуб"}
             </Button>
           </>
         }
       >
-        <form
-          id="create-club-form"
-          className="form-grid"
-          onSubmit={(event) => {
-            event.preventDefault();
-            const form = new FormData(event.currentTarget);
-            createClubMutation.mutate(
-              {
-                slug: String(form.get("slug") || "").trim().toLowerCase(),
-                title: String(form.get("title") || ""),
-                city: String(form.get("city") || ""),
-                address: String(form.get("address") || ""),
-                description: String(form.get("description") || ""),
-                avatar_url: String(form.get("avatar_url") || ""),
-                cover_url: String(form.get("cover_url") || ""),
-                visibility: String(form.get("visibility") || "public") as "public" | "unlisted",
-                socials: {
-                  telegram: "",
-                  instagram: "",
-                  vk: "",
-                  tiktok: "",
-                  youtube: "",
-                  soundcloud: "",
-                  beatport: "",
-                  yandex_music: "",
-                  spotify: "",
-                  website: "",
-                },
-              },
-              {
-                onSuccess: () => {
-                  event.currentTarget.reset();
-                },
-              }
-            );
-          }}
-        >
-          <label>
-            Slug
-            <Input name="slug" placeholder="my-club-moscow" required />
-          </label>
-          <label>
-            Title
-            <Input name="title" placeholder="My Club" required />
-          </label>
-          <label>
-            City
-            <Input name="city" placeholder="Москва" />
-          </label>
-          <label>
-            Address
-            <Input name="address" placeholder="ул. ..." />
-          </label>
-          <label>
-            Description
-            <Textarea name="description" rows={4} />
-          </label>
-          <label>
-            Avatar URL
-            <Input name="avatar_url" />
-          </label>
-          <label>
-            Cover URL
-            <Input name="cover_url" />
-          </label>
-          <label>
-            Visibility
-            <Select name="visibility" defaultValue="public">
-              <option value="public">public</option>
-              <option value="unlisted">unlisted</option>
-            </Select>
-          </label>
-        </form>
+        <div className="club-create-modal-layout">
+          <ClubCreateMockup draft={createDraft} />
+
+          <form className="form-grid" onSubmit={(event) => event.preventDefault()}>
+            <label>
+              Slug
+              <Input
+                name="slug"
+                placeholder="my-club-moscow"
+                value={createDraft.slug}
+                onChange={(event) =>
+                  setCreateDraft((prev) => ({
+                    ...prev,
+                    slug: event.target.value.replace(/\s+/g, "-").toLowerCase(),
+                  }))
+                }
+                required
+              />
+            </label>
+            <label>
+              Title
+              <Input
+                name="title"
+                placeholder="My Club"
+                value={createDraft.title}
+                onChange={(event) => setCreateDraft((prev) => ({ ...prev, title: event.target.value }))}
+                required
+              />
+            </label>
+            <label>
+              City
+              <Input
+                name="city"
+                placeholder="Москва"
+                value={createDraft.city}
+                onChange={(event) => setCreateDraft((prev) => ({ ...prev, city: event.target.value }))}
+              />
+            </label>
+            <label>
+              Address
+              <Input
+                name="address"
+                placeholder="ул. ..."
+                value={createDraft.address}
+                onChange={(event) => setCreateDraft((prev) => ({ ...prev, address: event.target.value }))}
+              />
+            </label>
+            <label>
+              Description
+              <Textarea
+                name="description"
+                rows={4}
+                value={createDraft.description}
+                onChange={(event) => setCreateDraft((prev) => ({ ...prev, description: event.target.value }))}
+              />
+            </label>
+            <label>
+              Avatar URL
+              <Input
+                name="avatar_url"
+                value={createDraft.avatar_url}
+                onChange={(event) => setCreateDraft((prev) => ({ ...prev, avatar_url: event.target.value }))}
+              />
+            </label>
+            <label>
+              Cover URL
+              <Input
+                name="cover_url"
+                value={createDraft.cover_url}
+                onChange={(event) => setCreateDraft((prev) => ({ ...prev, cover_url: event.target.value }))}
+              />
+            </label>
+            <label>
+              Visibility
+              <Select
+                name="visibility"
+                value={createDraft.visibility}
+                onChange={(event) =>
+                  setCreateDraft((prev) => ({
+                    ...prev,
+                    visibility: event.target.value as "public" | "unlisted",
+                  }))
+                }
+              >
+                <option value="public">public</option>
+                <option value="unlisted">unlisted</option>
+              </Select>
+            </label>
+          </form>
+        </div>
       </Modal>
     </section>
   );
