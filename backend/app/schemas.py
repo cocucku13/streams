@@ -194,6 +194,15 @@ class ViewerCountResponse(BaseModel):
     viewer_count: int
 
 
+class DiscoverStreamResponse(BaseModel):
+    stream_id: int
+    dj_username: str
+    viewer_count: int
+    peak_viewers: int
+    started_at: datetime
+    score: float
+
+
 class InviteClubSummary(BaseModel):
     id: int
     slug: str

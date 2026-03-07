@@ -1,6 +1,6 @@
 import os
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
@@ -10,7 +10,9 @@ from ..permissions.club_policy import get_active_membership
 from ..permissions.errors import forbidden, not_member
 from ..permissions.stream_policy import can_edit_stream
 from ..services.chat_service import get_recent_messages
-from ..services.stream_sessions import get_active_session
+from ..services.discovery_service import get_discover_streams
+from ..services.presence_service import get_viewer_count, join_viewer, leave_viewer
+from ..services.stream_sessions import get_active_session, update_peak_viewers
 
 router = APIRouter(prefix="/streams", tags=["streams"])
 
@@ -156,6 +158,11 @@ def get_active_stream_by_username(username: str, db: Session = Depends(get_db)):
     )
 
 
+@router.get("/discover", response_model=list[schemas.DiscoverStreamResponse])
+def discover_streams(limit: int = Query(default=20, ge=1, le=100), db: Session = Depends(get_db)):
+    return get_discover_streams(db, limit=limit)
+
+
 @router.get("/{stream_id:int}", response_model=schemas.PublicStreamResponse)
 def get_stream(stream_id: int, db: Session = Depends(get_db)):
     record = (
@@ -192,6 +199,7 @@ def get_stream(stream_id: int, db: Session = Depends(get_db)):
         club_slug=club.slug if club else None,
         club_title=club.title if club else None,
         is_live=live_now,
+        viewer_count=get_viewer_count(stream.id) if live_now else 0,
         hls_url=f"{HLS_BASE}/live/{owner.stream_key}/index.m3u8",
         whep_url=f"{WHEP_BASE}/live/{owner.stream_key}/whep",
         created_at=stream.created_at,
@@ -228,6 +236,36 @@ def get_stream_chat_history(stream_id: int, limit: int = 50, db: Session = Depen
         )
         for row in rows
     ]
+
+
+@router.post("/{stream_id:int}/presence/join", response_model=schemas.ViewerCountResponse)
+def join_stream_presence(stream_id: int, payload: schemas.PresenceSessionRequest, db: Session = Depends(get_db)):
+    stream = db.query(models.Stream).filter(models.Stream.id == stream_id).first()
+    if not stream:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Stream not found")
+
+    viewer_count = join_viewer(stream_id, payload.session_id)
+    update_peak_viewers(stream, db, viewer_count)
+    return schemas.ViewerCountResponse(viewer_count=viewer_count)
+
+
+@router.post("/{stream_id:int}/presence/leave", response_model=schemas.ViewerCountResponse)
+def leave_stream_presence(stream_id: int, payload: schemas.PresenceSessionRequest, db: Session = Depends(get_db)):
+    stream = db.query(models.Stream).filter(models.Stream.id == stream_id).first()
+    if not stream:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Stream not found")
+
+    viewer_count = leave_viewer(stream_id, payload.session_id)
+    return schemas.ViewerCountResponse(viewer_count=viewer_count)
+
+
+@router.get("/{stream_id:int}/viewer-count", response_model=schemas.ViewerCountResponse)
+def get_stream_viewer_count(stream_id: int, db: Session = Depends(get_db)):
+    stream = db.query(models.Stream).filter(models.Stream.id == stream_id).first()
+    if not stream:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Stream not found")
+
+    return schemas.ViewerCountResponse(viewer_count=get_viewer_count(stream_id))
 
 
 @router.patch("/{stream_id:int}", response_model=schemas.StreamResponse)
@@ -322,6 +360,7 @@ def list_live_streams(db: Session = Depends(get_db)):
                 club_slug=club.slug if club else None,
                 club_title=club.title if club else None,
                 is_live=True,
+                viewer_count=get_viewer_count(stream.id),
                 hls_url=f"{HLS_BASE}/live/{owner.stream_key}/index.m3u8",
                 whep_url=f"{WHEP_BASE}/live/{owner.stream_key}/whep",
                 created_at=stream.created_at,

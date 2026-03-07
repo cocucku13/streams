@@ -1,4 +1,5 @@
 from redis import Redis
+from redis.exceptions import RedisError
 
 from ..settings import settings
 
@@ -13,30 +14,43 @@ def _viewers_key(stream_id: int) -> str:
 
 def join_viewer(stream_id: int, session_id: str) -> int:
     redis = _get_redis_client()
-    key = _viewers_key(stream_id)
-    redis.sadd(key, session_id)
-    count = int(redis.scard(key))
-    redis.close()
-    return count
+    try:
+        key = _viewers_key(stream_id)
+        redis.sadd(key, session_id)
+        return int(redis.scard(key))
+    except RedisError:
+        return 0
+    finally:
+        redis.close()
 
 
 def leave_viewer(stream_id: int, session_id: str) -> int:
     redis = _get_redis_client()
-    key = _viewers_key(stream_id)
-    redis.srem(key, session_id)
-    count = int(redis.scard(key))
-    redis.close()
-    return count
+    try:
+        key = _viewers_key(stream_id)
+        redis.srem(key, session_id)
+        return int(redis.scard(key))
+    except RedisError:
+        return 0
+    finally:
+        redis.close()
 
 
 def get_viewer_count(stream_id: int) -> int:
     redis = _get_redis_client()
-    count = int(redis.scard(_viewers_key(stream_id)))
-    redis.close()
-    return count
+    try:
+        return int(redis.scard(_viewers_key(stream_id)))
+    except RedisError:
+        return 0
+    finally:
+        redis.close()
 
 
 def clear_stream_presence(stream_id: int) -> None:
     redis = _get_redis_client()
-    redis.delete(_viewers_key(stream_id))
-    redis.close()
+    try:
+        redis.delete(_viewers_key(stream_id))
+    except RedisError:
+        return
+    finally:
+        redis.close()

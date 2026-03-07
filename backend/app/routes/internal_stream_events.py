@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..db import get_db
+from ..services.presence_service import clear_stream_presence
 from ..services.stream_sessions import end_stream_session, start_stream_session
 
 router = APIRouter(prefix="/internal", tags=["internal-stream-events"])
@@ -86,6 +87,7 @@ def process_stream_event(
         session = start_stream_session(stream, db, ingest_type="rtmp")
         return {"status": "processed", "event": resolved_event, "stream_id": stream.id, "session_id": session.id}
 
+    clear_stream_presence(stream.id)
     ended = end_stream_session(stream, db)
     return {
         "status": "processed",
