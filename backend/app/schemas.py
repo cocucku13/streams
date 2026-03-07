@@ -150,6 +150,7 @@ class PublicStreamResponse(BaseModel):
     club_slug: str | None = None
     club_title: str | None = None
     is_live: bool
+    viewer_count: int = 0
     hls_url: str
     whep_url: str
     created_at: datetime
@@ -171,8 +172,8 @@ class StreamSessionResponse(BaseModel):
     ended_at: datetime | None
     status: Literal["active", "ended"]
     ingest_type: str
-    viewer_peak: int
-    viewer_avg: int
+    peak_viewers: int
+    avg_viewers: int
     created_at: datetime
 
     class Config:
@@ -183,6 +184,14 @@ class StreamEventRequest(BaseModel):
     event: Literal["stream_started", "stream_ended"]
     stream_key: str = Field(min_length=8, max_length=128)
     timestamp: datetime | None = None
+
+
+class PresenceSessionRequest(BaseModel):
+    session_id: str = Field(min_length=8, max_length=128)
+
+
+class ViewerCountResponse(BaseModel):
+    viewer_count: int
 
 
 class InviteClubSummary(BaseModel):

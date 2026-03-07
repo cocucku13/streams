@@ -1,0 +1,9 @@
+FROM bluenviron/mediamtx:latest AS mediamtx_bin
+
+FROM python:3.11-alpine
+
+RUN pip install --no-cache-dir requests==2.32.3
+
+COPY --from=mediamtx_bin /mediamtx /mediamtx
+
+ENTRYPOINT ["/mediamtx"]

@@ -18,7 +18,10 @@ services:
       - redis_data:/data
 
   mediamtx:
-    image: bluenviron/mediamtx:latest
+    build:
+      context: .
+      dockerfile: infra/Dockerfile.mediamtx
+    image: streams-mediamtx:local
     container_name: dj-mediamtx
     env_file:
       - ./.env
@@ -30,6 +33,7 @@ services:
       - "9997:9997"
     volumes:
       - ./infra/mediamtx.yml:/mediamtx.yml
+      - ./infra/stream_event_hook.py:/hooks/stream_event_hook.py
 
   backend:
     image: python:3.12-slim

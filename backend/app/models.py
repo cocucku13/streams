@@ -70,8 +70,8 @@ class StreamSession(Base):
     ended_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     status: Mapped[str] = mapped_column(String(20), default="active")
     ingest_type: Mapped[str] = mapped_column(String(50), default="unknown")
-    viewer_peak: Mapped[int] = mapped_column(Integer, default=0)
-    viewer_avg: Mapped[int] = mapped_column(Integer, default=0)
+    peak_viewers: Mapped[int] = mapped_column("viewer_peak", Integer, default=0)
+    avg_viewers: Mapped[int] = mapped_column("viewer_avg", Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     stream: Mapped[Stream] = relationship(back_populates="sessions")

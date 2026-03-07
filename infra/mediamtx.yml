@@ -10,7 +10,5 @@ webrtc: yes
 paths:
   all:
     source: publisher
-    runOnReady: >
-      /bin/sh -ec 'curl -fsS -m 3 -X POST "$STREAM_EVENTS_ENDPOINT" -H "Content-Type: application/json" -H "X-Internal-Token: $STREAM_EVENTS_SECRET" -d "{\"event\":\"stream_started\",\"stream_key\":\"$MTX_PATH\"}" || true'
-    runOnNotReady: >
-      /bin/sh -ec 'curl -fsS -m 3 -X POST "$STREAM_EVENTS_ENDPOINT" -H "Content-Type: application/json" -H "X-Internal-Token: $STREAM_EVENTS_SECRET" -d "{\"event\":\"stream_ended\",\"stream_key\":\"$MTX_PATH\"}" || true'
+    runOnReady: python /hooks/stream_event_hook.py stream_started $MTX_PATH
+    runOnNotReady: python /hooks/stream_event_hook.py stream_ended $MTX_PATH

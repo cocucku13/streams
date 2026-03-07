@@ -108,3 +108,75 @@ def test_stream_event_invalid_token_returns_403(test_client, db_session: Session
 
     assert response.status_code == 403
     assert response.json()["detail"] == "Invalid internal token"
+
+
+def test_stream_event_accepts_query_params_and_query_token(test_client, db_session: Session, monkeypatch) -> None:
+    monkeypatch.setenv("STREAM_EVENTS_SECRET", "wave6-secret")
+    stream_key = generate_stream_key()
+    _user, stream = _make_user_with_stream(db_session, "evt_query", "Event Query", stream_key)
+
+    response = test_client.post(
+        f"/api/internal/stream-events?event=stream_started&stream_key={stream_key}&token=wave6-secret"
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["event"] == "stream_started"
+    assert payload["stream_id"] == stream.id
+
+    active = (
+        db_session.query(models.StreamSession)
+        .filter(models.StreamSession.stream_id == stream.id, models.StreamSession.status == "active")
+        .first()
+    )
+    assert active is not None
+
+
+def test_stream_event_normalizes_live_prefix_stream_key(test_client, db_session: Session, monkeypatch) -> None:
+    monkeypatch.setenv("STREAM_EVENTS_SECRET", "wave6-secret")
+    stream_key = generate_stream_key()
+    _user, stream = _make_user_with_stream(db_session, "evt_norm", "Event Normalize", stream_key)
+
+    response = test_client.post(
+        "/api/internal/stream-events",
+        params={
+            "event": "stream_started",
+            "stream_key": f"live/{stream_key}",
+            "token": "wave6-secret",
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["event"] == "stream_started"
+    assert payload["stream_id"] == stream.id
+
+
+def test_stream_event_normalizes_live_prefix_stream_key_from_json(test_client, db_session: Session, monkeypatch) -> None:
+    monkeypatch.setenv("STREAM_EVENTS_SECRET", "wave6-secret")
+    stream_key = generate_stream_key()
+    _user, stream = _make_user_with_stream(db_session, "evt_norm_json", "Event Normalize Json", stream_key)
+
+    response = test_client.post(
+        "/api/internal/stream-events",
+        json=_event_payload("stream_started", f"live/{stream_key}"),
+        headers={"X-Internal-Token": "wave6-secret"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["event"] == "stream_started"
+    assert payload["stream_id"] == stream.id
+
+
+def test_stream_event_query_params_without_token_returns_403(test_client, db_session: Session, monkeypatch) -> None:
+    monkeypatch.setenv("STREAM_EVENTS_SECRET", "wave6-secret")
+    stream_key = generate_stream_key()
+    _make_user_with_stream(db_session, "evt_no_token", "Event No Token", stream_key)
+
+    response = test_client.post(
+        f"/api/internal/stream-events?event=stream_started&stream_key={stream_key}"
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Invalid internal token"
