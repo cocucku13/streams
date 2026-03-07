@@ -1,10 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { Bell, LogIn, Menu, Radio, Search, SendHorizontal } from "lucide-react";
+import { LogIn, Menu, Radio, Search } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { djApi } from "../../api";
 import { useAuth } from "../../shared/hooks/useAuth";
 import { Button } from "../../shared/ui/Button";
-import { Input } from "../../shared/ui/Input";
 
 export function TopNav({ onToggleSidebar }: { onToggleSidebar: () => void }) {
   const { isAuthed, logout } = useAuth();
@@ -20,69 +19,74 @@ export function TopNav({ onToggleSidebar }: { onToggleSidebar: () => void }) {
   return (
     <header className="top-nav">
       <div className="top-nav-left">
-        <Button variant="ghost" aria-label="Toggle sidebar" onClick={onToggleSidebar}>
+        <button
+          className="top-nav-icon-btn"
+          aria-label="Переключить боковое меню"
+          onClick={onToggleSidebar}
+        >
           <Menu size={18} />
-        </Button>
-        <Link to="/" className="brand">
-          DJ Streams
+        </button>
+
+        <Link to="/" className="top-nav-brand">
+          <Radio size={18} className="top-nav-brand-icon" />
+          <span>DJ Streams</span>
         </Link>
-        <Link to="/" className="top-nav-link">
-          Обзор
-        </Link>
+
+        <button
+          className="top-nav-text-btn"
+          onClick={() => navigate(isAuthed ? "/dashboard" : "/auth")}
+        >
+          Кабинет
+        </button>
       </div>
 
-      <div className="top-nav-search">
-        <Search size={16} className="top-nav-search-icon" />
-        <Input placeholder="Поиск DJ, клубов и жанров" aria-label="Поиск по платформе" />
+      <div className="top-nav-search-wrap">
+        <div className="top-nav-search">
+          <Search size={15} className="top-nav-search-icon" />
+          <input
+            className="top-nav-search-input"
+            placeholder="Поиск DJ, клубов и жанров…"
+            aria-label="Поиск по платформе"
+          />
+        </div>
       </div>
 
-      <div className="top-nav-right">
-        <Button variant="ghost" onClick={() => navigate("/")}>
-          <Radio size={16} />
-          Сейчас в эфире
-        </Button>
-        <Button variant="ghost" aria-label="Уведомления" disabled title="Скоро">
-          <Bell size={16} />
-        </Button>
-        <Button variant="ghost" aria-label="Сообщения" disabled title="Скоро">
-          <SendHorizontal size={16} />
-        </Button>
-
+      <nav className="top-nav-right">
         {isAuthed ? (
           <>
-            <Button variant="secondary" onClick={() => navigate("/dashboard")}>
+            <button
+              className="top-nav-text-btn"
+              onClick={() => navigate("/dashboard")}
+            >
               Creator Studio
-            </Button>
+            </button>
             {manageableClub ? (
-              <Button variant="ghost" onClick={() => navigate(`/club-studio/${manageableClub.id}`)}>
-                Club Studio
-              </Button>
+              <button
+                className="top-nav-text-btn"
+                onClick={() => navigate(`/club-studio/${manageableClub.id}`)}
+              >
+                Клуб
+              </button>
             ) : null}
-            <Button variant="ghost" onClick={() => navigate("/clubs")}>
-              Клубы
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                logout();
-                navigate("/");
-              }}
+            <button
+              className="top-nav-text-btn"
+              onClick={() => { logout(); navigate("/"); }}
             >
               Выйти
-            </Button>
+            </button>
           </>
         ) : (
           <>
-            <Button variant="primary" onClick={() => navigate("/auth")}>
-              <LogIn size={16} />
-              Войти
-            </Button>
-            <Button variant="secondary" onClick={() => navigate("/auth?mode=register")}>
+            <Button variant="ghost" onClick={() => navigate("/auth?mode=register")}>
               Регистрация
+            </Button>
+            <Button variant="primary" onClick={() => navigate("/auth")}>
+              <LogIn size={15} />
+              Войти
             </Button>
           </>
         )}
-      </div>
+      </nav>
     </header>
   );
 }

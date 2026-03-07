@@ -1,46 +1,49 @@
-import { StreamCard } from "./StreamCard";
-import { Skeleton } from "../../shared/ui/Skeleton";
+import { Radio } from "lucide-react";
 import type { PublicStream, StreamWithMeta } from "../../types";
-import { Button } from "../../shared/ui/Button";
-import { Link } from "react-router-dom";
+import { StreamCard } from "./StreamCard";
+
+function CardSkeleton() {
+  return (
+    <div className="stream-card stream-card--skeleton">
+      <div className="stream-thumb stream-thumb--skeleton">
+        <div className="skeleton-shimmer" />
+      </div>
+      <div className="stream-meta">
+        <div className="skeleton-line" style={{ width: "80%", height: 18 }} />
+        <div className="skeleton-line" style={{ width: "50%", height: 13 }} />
+      </div>
+    </div>
+  );
+}
 
 export function StreamGrid({ streams, loading }: { streams: Array<PublicStream | StreamWithMeta>; loading: boolean }) {
   if (loading) {
     return (
-      <section className="stream-grid">
-        {Array.from({ length: 6 }).map((_, index) => (
-          <div key={index} className="ui-card">
-            <Skeleton className="skeleton-thumb" />
-            <Skeleton className="skeleton-line" />
-            <Skeleton className="skeleton-line short" />
-          </div>
+      <div className="stream-grid">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <CardSkeleton key={i} />
         ))}
-      </section>
+      </div>
     );
   }
 
   if (!streams.length) {
     return (
-      <section className="ui-card empty-state">
-        <h3>Пока никто не стримит</h3>
-        <p>Запусти первый сет в твоем городе и собери аудиторию клуба.</p>
-        <div className="row gap">
-          <Link to="/dashboard/stream">
-            <Button>Стать первым</Button>
-          </Link>
-          <Button variant="secondary" disabled title="Скоро">
-            Посмотреть записи
-          </Button>
-        </div>
-      </section>
+      <div className="empty-state-card">
+        <Radio size={32} strokeWidth={1.5} className="empty-state-icon" />
+        <h3 className="empty-state-title">Сейчас нет активных эфиров</h3>
+        <p className="empty-state-body">Загляните позже, когда диджеи снова выйдут в эфир.</p>
+      </div>
     );
   }
 
+  const gridClass = streams.length < 3 ? "stream-grid stream-grid--few" : "stream-grid";
+
   return (
-    <section className="stream-grid">
+    <div className={gridClass}>
       {streams.map((stream) => (
         <StreamCard key={stream.id} stream={stream} />
       ))}
-    </section>
+    </div>
   );
 }

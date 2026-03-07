@@ -7,6 +7,8 @@ import { Input } from "../shared/ui/Input";
 import { Modal } from "../shared/ui/Modal";
 import { SocialLinks } from "../shared/ui/SocialLinks";
 import { Textarea } from "../shared/ui/Textarea";
+import { WorkspaceHeader } from "../shared/ui/WorkspaceHeader";
+import { WorkspaceStateCard } from "../shared/ui/WorkspaceStateCard";
 
 export function DashboardProfilePage() {
   const [open, setOpen] = useState(false);
@@ -18,20 +20,16 @@ export function DashboardProfilePage() {
   });
 
   if (!data) {
-    return <p>Загружаем профиль…</p>;
+    return <WorkspaceStateCard title="Профиль DJ" description="Загружаем данные профиля..." />;
   }
 
   return (
     <section className="page-stack">
-      <Card>
-        <div className="row between">
-          <div>
-            <h2>DJ Profile</h2>
-            <p className="muted">Редактируйте профиль рядом с контентом.</p>
-          </div>
-          <Button onClick={() => setOpen(true)}>Редактировать профиль</Button>
-        </div>
-      </Card>
+      <WorkspaceHeader
+        title="Профиль DJ"
+        description="Публичные данные, описание и социальные ссылки вашего DJ-профиля."
+        actions={<Button onClick={() => setOpen(true)}>Редактировать профиль</Button>}
+      />
 
       <div className="ui-card profile-hero">
         <div className="profile-cover" style={data.cover_url ? { backgroundImage: `url(${data.cover_url})` } : undefined} />
@@ -63,10 +61,10 @@ export function DashboardProfilePage() {
         footer={
           <>
             <Button variant="ghost" onClick={() => setOpen(false)}>
-              Cancel
+              Отмена
             </Button>
             <Button type="submit" form="dj-profile-form" disabled={mutation.isPending}>
-              Save
+              {mutation.isPending ? "Сохраняем..." : "Сохранить"}
             </Button>
           </>
         }
@@ -105,19 +103,19 @@ export function DashboardProfilePage() {
           }}
         >
           <label>
-            Display name
+            Публичное имя
             <Input name="display_name" defaultValue={data.display_name} />
           </label>
           <label>
-            Bio
+            Био
             <Textarea name="bio" defaultValue={data.bio} rows={4} />
           </label>
           <label>
-            Avatar URL
+            URL аватара
             <Input name="avatar_url" defaultValue={data.avatar_url} />
           </label>
           <label>
-            Cover URL
+            URL обложки
             <Input name="cover_url" defaultValue={data.cover_url} />
           </label>
           <label>

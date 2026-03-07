@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Settings, Share2 } from "lucide-react";
+import { Eye, Settings, Share2, Users } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -7,23 +7,10 @@ import { ApiError, browseApi, clubApi, djApi, profileApi, streamApi } from "../a
 import { EditStreamSettingsModal } from "../features/editStreamInline/EditStreamSettingsModal";
 import { useAuth } from "../shared/hooks/useAuth";
 import { copyText } from "../shared/lib/utils";
-import { Badge } from "../shared/ui/Badge";
 import { Button } from "../shared/ui/Button";
-import { Card } from "../shared/ui/Card";
 import { StreamUnavailableState } from "../shared/ui/StreamUnavailableState";
 import { ChatPanel } from "../widgets/chat/ChatPanel";
 import { VideoPlayer } from "../widgets/player/VideoPlayer";
-
-function formatStartedAt(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Unknown";
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-}
 
 export function WatchPage() {
   const { streamId } = useParams();
@@ -66,26 +53,41 @@ export function WatchPage() {
   const isClubManager = Boolean(
     stream?.club_id &&
       me &&
-      clubMembers?.some((member) => member.user_id === me.id && member.status === "active" && ["owner", "admin"].includes(member.role))
+      clubMembers?.some(
+        (member) =>
+          member.user_id === me.id &&
+          member.status === "active" &&
+          ["owner", "admin"].includes(member.role)
+      )
   );
   const canManageStream = Boolean(isStreamOwner || isClubManager);
   const effectiveViewerCount = viewerCount?.viewer_count ?? stream?.viewer_count ?? 0;
 
   if (isLoading) {
     return (
-      <Card>
-        <h2>Загружаем эфир…</h2>
-        <p className="muted">Подключаем плеер, метаданные и чат.</p>
-      </Card>
+      <div className="watch-loading-state">
+        <div className="watch-loading-player" />
+        <p className="watch-loading-label">Подключаем трансляцию…</p>
+      </div>
     );
   }
 
   if (isError && error instanceof ApiError && error.status === 404) {
-    return <StreamUnavailableState title="Эфир не найден" description="Проверьте ссылку или откройте активный эфир из каталога." />;
+    return (
+      <StreamUnavailableState
+        title="Эфир не найден"
+        description="Проверьте ссылку или откройте активный эфир из каталога."
+      />
+    );
   }
 
   if (!stream) {
-    return <StreamUnavailableState title="Эфир недоступен" description="Трансляция завершена или временно недоступна." />;
+    return (
+      <StreamUnavailableState
+        title="Эфир недоступен"
+        description="Трансляция завершена или временно недоступна."
+      />
+    );
   }
 
   if (!stream.is_live) {
@@ -99,80 +101,93 @@ export function WatchPage() {
   }
 
   return (
-    <section className="watch-layout">
-      <div className="watch-main">
-        <section className="ui-card">
-          <h1>{stream.title}</h1>
-          <p className="muted">{stream.description || "Описание не заполнено"}</p>
-          <div className="watch-action-row" style={{ marginTop: 12 }}>
-            <Button
-              variant="secondary"
-              onClick={async () => {
-                await copyText(window.location.href);
-                toast.success("Ссылка на эфир скопирована");
-              }}
-            >
-              <Share2 size={16} />
-              Поделиться
-            </Button>
-            <Link to={`/dj/${stream.owner_username}`}>
-              <Button variant="ghost">Профиль DJ</Button>
-            </Link>
-            {stream.club_slug ? (
-              <Link to={`/club/${stream.club_slug}`}>
-                <Button variant="ghost">Профиль клуба</Button>
-              </Link>
-            ) : null}
-            {canManageStream ? (
-              <Button variant="ghost" onClick={() => setSettingsOpen(true)} aria-label="Настройки стрима">
-                <Settings size={16} />
-                Настройки
-              </Button>
-            ) : null}
+    <div className="watch-page">
+      <div className="watch-layout">
+        {/* Left: player + info */}
+        <div className="watch-main">
+          {/* Player */}
+          <div className="watch-player-wrap">
+            <VideoPlayer hlsUrl={stream.hls_url} whepUrl={stream.whep_url} />
           </div>
-          {isAuthed && !canManageStream ? <p className="muted">Настройки стрима доступны владельцу или admin клуба.</p> : null}
-        </section>
 
-        <section className="ui-card">
-          <div className="watch-meta-row">
-            <Badge tone="live">LIVE</Badge>
-            <span>{effectiveViewerCount} зрителей</span>
-            <span className="muted">Started: {formatStartedAt(stream.started_at)}</span>
-            <Badge tone="club">{stream.club_title || "Без клуба"}</Badge>
-          </div>
-          <p className="muted" style={{ marginTop: 8 }}>Now Playing: {stream.current_track || "Трек не указан"}</p>
-        </section>
+          {/* Stream info card */}
+          <div className="watch-info-card">
+            <div className="watch-info-top">
+              {/* Avatar + DJ identity */}
+              <div className="watch-dj-identity">
+                <div className="watch-dj-avatar">
+                  {stream.owner_name.slice(0, 1).toUpperCase()}
+                </div>
+                <div className="watch-dj-text">
+                  <span className="watch-dj-label">DJ</span>
+                  <p className="watch-dj-name">{stream.owner_name}</p>
+                  {stream.owner_username && (
+                    <p className="watch-dj-handle">@{stream.owner_username}</p>
+                  )}
+                </div>
+              </div>
 
-        <VideoPlayer hlsUrl={stream.hls_url} whepUrl={stream.whep_url} />
+              {/* Actions */}
+              <div className="watch-info-actions">
+                {stream.owner_username ? (
+                  <Link to={`/dj/${stream.owner_username}`}>
+                    <Button variant="secondary">Профиль DJ</Button>
+                  </Link>
+                ) : null}
+                <Button
+                  variant="ghost"
+                  onClick={async () => {
+                    await copyText(window.location.href);
+                    toast.success("Ссылка на эфир скопирована");
+                  }}
+                >
+                  <Share2 size={15} />
+                  Поделиться
+                </Button>
+                {canManageStream && (
+                  <Button variant="ghost" onClick={() => setSettingsOpen(true)}>
+                    <Settings size={15} />
+                  </Button>
+                )}
+              </div>
+            </div>
 
-        <section className="watch-channel-row ui-card">
-          <h3 style={{ marginBottom: 12 }}>DJ and Club context</h3>
-          <div className="watch-channel-left">
-            <div className="watch-avatar">{stream.owner_name.slice(0, 1).toUpperCase()}</div>
-            <div>
-              <h2 className="watch-channel-name">{stream.owner_name}</h2>
-              <p className="muted">@{stream.owner_username || "unknown-dj"}</p>
-              <p className="muted">Клуб: {stream.club_title || "Клуб не привязан"}</p>
+            {/* Title + meta */}
+            <div className="watch-info-body">
+              <h1 className="watch-stream-title">{stream.title}</h1>
+
+              <div className="watch-meta-pills">
+                <span className="watch-live-badge">
+                  <span className="watch-live-dot" />
+                  LIVE
+                </span>
+                <span className="watch-stat-pill">
+                  <Eye size={13} />
+                  {effectiveViewerCount} зрителей
+                </span>
+                {stream.genre ? (
+                  <span className="watch-genre-pill">{stream.genre}</span>
+                ) : null}
+                {stream.club_title ? (
+                  <span className="watch-club-pill">
+                    <Users size={12} />
+                    {stream.club_title}
+                  </span>
+                ) : null}
+              </div>
+
+              {stream.description ? (
+                <p className="watch-description">{stream.description}</p>
+              ) : null}
             </div>
           </div>
-          {!stream.owner_username ? <p className="muted">DJ username unavailable in stream payload.</p> : null}
-          {!stream.club_id ? <p className="muted">К этому эфиру клуб не привязан.</p> : null}
-        </section>
+        </div>
 
-        {canManageStream ? (
-          <Card>
-            <h3>Creator controls</h3>
-            <p className="muted">Редактирование доступно только владельцу или admin назначенного клуба.</p>
-            <Button variant="secondary" onClick={() => setSettingsOpen(true)}>
-              Открыть настройки стрима
-            </Button>
-          </Card>
-        ) : null}
+        {/* Right: chat */}
+        <aside className="watch-chat">
+          <ChatPanel streamId={stream.id} disabled={!isAuthed} />
+        </aside>
       </div>
-
-      <aside className="watch-chat">
-        <ChatPanel streamId={stream.id} disabled={!isAuthed} />
-      </aside>
 
       <EditStreamSettingsModal
         open={settingsOpen}
@@ -183,6 +198,6 @@ export function WatchPage() {
         canManage={canManageStream}
         streamIdKey={stream.id}
       />
-    </section>
+    </div>
   );
 }

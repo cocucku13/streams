@@ -5,7 +5,6 @@ import { Virtuoso } from "react-virtuoso";
 import { streamApi } from "../../api";
 import type { ChatMessage } from "../../types";
 import { Button } from "../../shared/ui/Button";
-import { Card } from "../../shared/ui/Card";
 import { Input } from "../../shared/ui/Input";
 
 const WS_BASE = import.meta.env.VITE_WS_BASE ?? "ws://localhost:8000";
@@ -27,9 +26,7 @@ export function ChatPanel({ streamId, disabled }: { streamId: number; disabled?:
   });
 
   useEffect(() => {
-    if (!historyQuery.data) {
-      return;
-    }
+    if (!historyQuery.data) return;
     setMessages(historyQuery.data);
   }, [historyQuery.data]);
 
@@ -38,9 +35,7 @@ export function ChatPanel({ streamId, disabled }: { streamId: number; disabled?:
     const merged = [...prev];
     incoming.forEach((item) => {
       const key = `${item.at}|${item.user}|${item.message}`;
-      if (byKey.has(key)) {
-        return;
-      }
+      if (byKey.has(key)) return;
       byKey.add(key);
       merged.push(item);
     });
@@ -62,13 +57,11 @@ export function ChatPanel({ streamId, disabled }: { streamId: number; disabled?:
 
     ws.onmessage = (event) => {
       const payload = JSON.parse(event.data) as ChatMessage | { type?: string; detail?: string };
-
       if ("type" in payload && payload.type === "error") {
         if (!mounted) return;
         setConnectionError(payload.detail || "Ошибка чата");
         return;
       }
-
       const message = payload as ChatMessage;
       setMessages((prev) => appendUniqueMessages(prev, [message]));
     };
@@ -89,77 +82,107 @@ export function ChatPanel({ streamId, disabled }: { streamId: number; disabled?:
     setSocket(ws);
     return () => {
       mounted = false;
-      if (reconnectTimer) {
-        window.clearTimeout(reconnectTimer);
-      }
+      if (reconnectTimer) window.clearTimeout(reconnectTimer);
       ws.close();
     };
   }, [streamId, reconnectAttempt]);
 
   function send(event: FormEvent) {
     event.preventDefault();
-    if (!socket || socket.readyState !== WebSocket.OPEN || !text.trim()) {
-      return;
-    }
+    if (!socket || socket.readyState !== WebSocket.OPEN || !text.trim()) return;
     socket.send(JSON.stringify({ user: nick || "Guest", message: text.trim() }));
     setText("");
   }
 
   const participantsApprox = useMemo(() => Math.max(1, Math.floor(messages.length / 5)), [messages.length]);
 
+  const statusDot =
+    connectionState === "connected"
+      ? "chat-status-dot--connected"
+      : connectionState === "connecting"
+        ? "chat-status-dot--connecting"
+        : "chat-status-dot--disconnected";
+
+  const statusLabel =
+    connectionState === "connected" ? "онлайн" : connectionState === "connecting" ? "подключение…" : "отключён";
+
   return (
-    <Card className="chat-panel">
-      <header className="chat-header">
-        <h3>Чат</h3>
-        <span className="muted">
-          {connectionState === "connected" ? "Online" : connectionState === "connecting" ? "Connecting" : "Disconnected"}
-        </span>
-      </header>
-
-      <p className="chat-rules">Уважайте участников. Спам и токсичность удаляются модераторами.</p>
-      <p className="muted">~{participantsApprox} участников</p>
-
-      {historyQuery.isLoading ? <p className="muted">Загружаем историю чата…</p> : null}
-      {historyQuery.isError ? <p className="error">Не удалось загрузить историю чата.</p> : null}
-      {connectionError ? <p className="error">{connectionError}</p> : null}
-      {!historyQuery.isLoading && !messages.length ? <p className="muted">История чата пуста. Будьте первым сообщением.</p> : null}
-
-      <div className="chat-list">
-        <Virtuoso
-          totalCount={messages.length}
-          itemContent={(index) => {
-            const message = messages[index];
-            return (
-              <div className="chat-message" key={`${message.at}-${index}`}>
-                <strong>{message.user}</strong>
-                <span>{message.message}</span>
-                <time>{dayjs(message.at).format("HH:mm")}</time>
-              </div>
-            );
-          }}
-        />
+    <div className="chat-panel">
+      {/* Header */}
+      <div className="chat-header">
+        <div className="chat-header-left">
+          <span className={`chat-status-dot ${statusDot}`} />
+          <h3 className="chat-title">Чат&nbsp;<span className="chat-title-status">• {statusLabel}</span></h3>
+        </div>
+        <span className="chat-participants">~{participantsApprox} в чате</span>
       </div>
 
+      {/* Error bar (connection errors only) */}
+      {connectionError && (
+        <div className="chat-error-bar">{connectionError}</div>
+      )}
+
+      {/* Messages */}
+      <div className="chat-messages-area">
+        {historyQuery.isLoading ? (
+          <p className="chat-hint">Загружаем историю…</p>
+        ) : !messages.length ? (
+          <p className="chat-hint">Сообщений пока нет. Будьте первым!</p>
+        ) : (
+          <Virtuoso
+            style={{ height: "100%" }}
+            totalCount={messages.length}
+            followOutput="smooth"
+            itemContent={(index) => {
+              const message = messages[index];
+              return (
+                <div className="chat-message" key={`${message.at}-${index}`}>
+                  <span className="chat-username">{message.user}</span>
+                  <span className="chat-text">{message.message}</span>
+                  <time className="chat-time">{dayjs(message.at).format("HH:mm")}</time>
+                </div>
+              );
+            }}
+          />
+        )}
+      </div>
+
+      {/* Composer / Guest lock */}
       {disabled ? (
         <div className="chat-guest-lock">
-          <p>Войдите, чтобы писать в чат</p>
-          <Button disabled>Только просмотр</Button>
+          <p className="chat-guest-text">Войдите, чтобы писать в чат</p>
         </div>
       ) : (
         <form onSubmit={send} className="chat-composer">
-          <Input value={nick} onChange={(event) => setNick(event.target.value)} placeholder="Ник" maxLength={24} />
-          <Input value={text} onChange={(event) => setText(event.target.value)} placeholder="Написать сообщение" maxLength={300} />
-          <Button type="submit" disabled={!text.trim() || connectionState !== "connected"}>
-            Отправить
-          </Button>
+          <Input
+            value={nick}
+            onChange={(event) => setNick(event.target.value)}
+            placeholder="Ник"
+            maxLength={24}
+            className="chat-nick-input"
+          />
+          <div className="chat-composer-row">
+            <Input
+              value={text}
+              onChange={(event) => setText(event.target.value)}
+              placeholder="Написать сообщение…"
+              maxLength={300}
+            />
+            <Button type="submit" variant="primary" disabled={!text.trim() || connectionState !== "connected"}>
+              →
+            </Button>
+          </div>
         </form>
       )}
 
       {connectionState === "disconnected" ? (
-        <Button variant="ghost" onClick={() => setReconnectAttempt((value) => value + 1)}>
-          Переподключить чат
-        </Button>
+        <button
+          className="chat-reconnect-btn"
+          onClick={() => setReconnectAttempt((value) => value + 1)}
+        >
+          Переподключить
+        </button>
       ) : null}
-    </Card>
+    </div>
   );
 }

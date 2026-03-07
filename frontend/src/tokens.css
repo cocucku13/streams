@@ -1,23 +1,72 @@
+@import "tailwindcss";
+
 :root {
-  --bg: #0B0C10;
-  --surface: #111217;
-  --surface-2: #161821;
-  --border: rgba(255,255,255,0.06);
+  /* Surface scale */
+  --bg:        #09090f;
+  --surface:   #0f1018;
+  --surface-2: #13151f;
+  --surface-3: #181b27;
+  --border:    rgba(255,255,255,0.07);
+  --border-accent: rgba(139,92,246,0.28);
 
-  --text: #F3F3F7;
-  --muted: #9CA3AF;
+  /* Typography */
+  --text:      #F0F0F6;
+  --text-muted: #7B8094;
+  --muted:     #7B8094;
 
-  --accent: #8B5CF6;
+  /* Brand accent — vivid purple */
+  --accent:        #8B5CF6;
   --accent-strong: #A855F7;
-  --accent-glow: rgba(139,92,246,0.35);
+  --accent-dim:    #6D3FCC;
+  --accent-glow:   rgba(139,92,246,0.32);
+  --accent-hover:  #9d6fff;
 
-  --danger: #EF4444;
-  --success: #22C55E;
+  /* Semantic */
+  --danger:   #EF4444;
+  --danger-glow: rgba(239,68,68,0.26);
+  --success:  #22C55E;
+  --live-red: #FF2D55;
+  --live-glow: rgba(255,45,85,0.30);
 
-  --radius-card: 18px;
-  --radius-input: 14px;
-  --radius-pill: 999px;
+  /* Radii */
+  --radius-card:  16px;
+  --radius-input: 12px;
+  --radius-pill:  999px;
+  --radius-sm:    8px;
 
-  --shadow-soft: 0 8px 40px rgba(0,0,0,0.45);
-  --shadow-glow: 0 0 30px rgba(139,92,246,0.2);
+  /* Shadows */
+  --shadow-soft: 0 8px 40px rgba(0,0,0,0.55);
+  --shadow-glow: 0 0 28px rgba(139,92,246,0.22);
+  --shadow-lift: 0 16px 56px rgba(0,0,0,0.6);
+
+  /* Tailwind theme extension mapping */
+  --color-bg:       var(--bg);
+  --color-surface:  var(--surface);
+  --color-surface2: var(--surface-2);
+  --color-surface3: var(--surface-3);
+  --color-accent:   var(--accent);
+  --color-muted:    var(--text-muted);
+  --color-text:     var(--text);
+  --color-border:   var(--border);
+  --color-live:     var(--live-red);
+  --color-danger:   var(--danger);
+  --color-success:  var(--success);
+}
+
+@theme inline {
+  --color-bg:       var(--bg);
+  --color-surface:  var(--surface);
+  --color-surface2: var(--surface-2);
+  --color-surface3: var(--surface-3);
+  --color-accent:   var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-muted:    var(--text-muted);
+  --color-text:     var(--text);
+  --color-border-base: var(--border);
+  --color-live:     var(--live-red);
+  --color-danger:   var(--danger);
+  --color-success:  var(--success);
+  --radius-card:    16px;
+  --radius-input:   12px;
+  --radius-pill:    999px;
 }

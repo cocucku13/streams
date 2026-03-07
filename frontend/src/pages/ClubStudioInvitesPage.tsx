@@ -6,6 +6,7 @@ import { Button } from "../shared/ui/Button";
 import { Card } from "../shared/ui/Card";
 import { Input } from "../shared/ui/Input";
 import { Select } from "../shared/ui/Select";
+import { WorkspaceStateCard } from "../shared/ui/WorkspaceStateCard";
 
 export function ClubStudioInvitesPage() {
   const { clubId = "" } = useParams();
@@ -22,25 +23,25 @@ export function ClubStudioInvitesPage() {
     mutationFn: (payload: { invited_username?: string; invited_email?: string; role_to_assign: "dj" | "moderator" | "admin" }) =>
       clubApi.invite(id, payload),
     onSuccess: async () => {
-      toast.success("Invite создан");
+      toast.success("Инвайт создан");
       await queryClient.invalidateQueries({ queryKey: ["club-invites", id] });
     },
-    onError: () => toast.error("Не удалось создать invite"),
+    onError: () => toast.error("Не удалось создать инвайт"),
   });
 
   const revokeInvite = useMutation({
     mutationFn: (inviteId: number) => clubApi.revokeInvite(inviteId),
     onSuccess: async () => {
-      toast.success("Invite отозван");
+      toast.success("Инвайт отозван");
       await queryClient.invalidateQueries({ queryKey: ["club-invites", id] });
     },
-    onError: () => toast.error("Не удалось отозвать invite"),
+    onError: () => toast.error("Не удалось отозвать инвайт"),
   });
 
   return (
     <div className="page-stack">
       <Card>
-        <h3>Create invite</h3>
+        <h3>Создать инвайт</h3>
         <form
           className="form-grid"
           onSubmit={(event) => {
@@ -65,7 +66,7 @@ export function ClubStudioInvitesPage() {
             <Input name="invited_email" placeholder="dj@club.com" />
           </label>
           <label>
-            Role
+            Роль
             <Select name="role_to_assign" defaultValue="dj">
               <option value="dj">dj</option>
               <option value="moderator">moderator</option>
@@ -73,25 +74,25 @@ export function ClubStudioInvitesPage() {
             </Select>
           </label>
           <Button type="submit" disabled={createInvite.isPending}>
-            Create invite
+            {createInvite.isPending ? "Создаем..." : "Создать инвайт"}
           </Button>
         </form>
       </Card>
 
       <Card>
-        <h3>Invites</h3>
-        {isLoading ? <p>Загружаем invites…</p> : null}
-        {isError ? <p className="error">Не удалось загрузить invites</p> : null}
-        {!isLoading && !data?.length ? <p className="muted">Инвайтов пока нет</p> : null}
+        <h3>Список инвайтов</h3>
+        {isLoading ? <WorkspaceStateCard title="Инвайты" description="Загружаем список инвайтов..." /> : null}
+        {isError ? <WorkspaceStateCard title="Инвайты" description="Не удалось загрузить инвайты. Попробуйте позже." tone="error" /> : null}
+        {!isLoading && !isError && !data?.length ? <p className="muted">Инвайтов пока нет</p> : null}
         {data?.length ? (
           <div className="table-wrap">
             <table className="ui-table">
               <thead>
                 <tr>
-                  <th>Invitee</th>
-                  <th>Role</th>
-                  <th>Status</th>
-                  <th>Expires</th>
+                  <th>Кому</th>
+                  <th>Роль</th>
+                  <th>Статус</th>
+                  <th>Истекает</th>
                   <th />
                 </tr>
               </thead>
@@ -108,7 +109,7 @@ export function ClubStudioInvitesPage() {
                         disabled={invite.status !== "pending" || revokeInvite.isPending}
                         onClick={() => revokeInvite.mutate(invite.id)}
                       >
-                        Revoke
+                        Отозвать
                       </Button>
                     </td>
                   </tr>

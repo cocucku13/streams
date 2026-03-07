@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { djApi } from "../api";
 import { Badge } from "../shared/ui/Badge";
 import { Button } from "../shared/ui/Button";
-import { Card } from "../shared/ui/Card";
+import { WorkspaceHeader } from "../shared/ui/WorkspaceHeader";
 
 export function DashboardLandingPage() {
   const { data } = useQuery({ queryKey: ["dj-me"], queryFn: djApi.me });
@@ -11,52 +11,59 @@ export function DashboardLandingPage() {
 
   return (
     <section className="page-stack">
-      <Card>
-        <h2>Role Hub</h2>
-        <p className="muted">Единая точка перехода между ролями viewer / dj / club owner.</p>
-      </Card>
+      <WorkspaceHeader title="Рабочая зона автора" description="Управление профилем, эфиром и клубными инструментами из единой точки." />
 
       <div className="profile-clubs-grid">
-        <Card>
-          <h3>Viewer</h3>
-          <p className="muted">Смотреть эфиры и открывать профили DJ/клубов.</p>
-          <Link to="/">
-            <Button>Открыть Browse</Button>
-          </Link>
-        </Card>
-
-        <Card>
-          <h3>DJ</h3>
-          <p className="muted">Управлять своим стримом и публичным DJ-профилем.</p>
+        <section className="ui-card">
+          <h3>Инструменты DJ</h3>
+          <p className="muted">Редактирование публичного профиля и настроек активного эфира.</p>
           <div className="row gap">
             <Link to="/dashboard/stream">
-              <Button>Stream</Button>
+              <Button>Стрим</Button>
             </Link>
             <Link to="/dashboard/profile">
-              <Button variant="secondary">Profile</Button>
+              <Button variant="secondary">Профиль</Button>
             </Link>
           </div>
-        </Card>
+        </section>
 
-        <Card>
-          <h3>Club Owner/Admin</h3>
+        <section className="ui-card">
+          <h3>Системные разделы</h3>
+          <p className="muted">Разделы ниже доступны, но часть возможностей пока ограничена backend-контрактом.</p>
+          <div className="row gap">
+            <Link to="/dashboard/moderation">
+              <Button variant="secondary">Модерация</Button>
+            </Link>
+            <Link to="/dashboard/integrations">
+              <Button variant="secondary">Интеграции</Button>
+            </Link>
+          </div>
+        </section>
+
+        <section className="ui-card">
+          <h3>Club Studio</h3>
           {manageableClub ? (
             <>
               <p className="muted">Клуб: {manageableClub.title}</p>
               <Badge tone="club">{manageableClub.role}</Badge>
               <div className="row gap">
                 <Link to={`/club-studio/${manageableClub.id}`}>
-                  <Button>Club Studio</Button>
+                  <Button>Открыть Club Studio</Button>
                 </Link>
                 <Link to={`/club/${manageableClub.slug}`}>
-                  <Button variant="secondary">Club Page</Button>
+                  <Button variant="secondary">Профиль клуба</Button>
                 </Link>
               </div>
             </>
           ) : (
-            <p className="muted">У вас пока нет роли owner/admin в клубах.</p>
+            <>
+              <p className="muted">У вас нет роли owner/admin в клубах. Управление клубом станет доступно после назначения роли.</p>
+              <Link to="/clubs">
+                <Button variant="secondary">К клубам</Button>
+              </Link>
+            </>
           )}
-        </Card>
+        </section>
       </div>
     </section>
   );

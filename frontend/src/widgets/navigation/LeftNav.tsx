@@ -1,4 +1,4 @@
-import { Building2, Compass, Disc3, Heart, LayoutDashboard, Shrink } from "lucide-react";
+import { Building2, ChevronLeft, ChevronRight, Compass, Disc3, Heart, LayoutDashboard } from "lucide-react";
 import type { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "../../shared/lib/utils";
@@ -19,30 +19,43 @@ export function LeftNav({ collapsed, onToggle }: { collapsed: boolean; onToggle:
   return (
     <aside className={cn("left-nav", collapsed && "left-nav--collapsed")}>
       <div className="left-nav-items">
-        {items.map((item) => (
-          item.disabled || !item.to ? (
-            <span key={item.label} className={cn("left-nav-item", "left-nav-item--disabled")} aria-disabled="true" title="Скоро">
-              {item.icon}
-              {!collapsed && <span>{item.label}</span>}
-            </span>
-          ) : (
+        {items.map((item) => {
+          const isActive = item.to
+            ? item.to === "/"
+              ? location.pathname === "/"
+              : location.pathname.startsWith(item.to)
+            : false;
+
+          if (item.disabled || !item.to) {
+            return (
+              <span
+                key={item.label}
+                className="left-nav-item left-nav-item--disabled"
+                aria-disabled="true"
+                title={item.label + " — скоро"}
+              >
+                <span className="left-nav-icon">{item.icon}</span>
+                {!collapsed && <span className="left-nav-label">{item.label}</span>}
+              </span>
+            );
+          }
+
+          return (
             <Link
               key={item.label}
               to={item.to}
-              className={cn(
-                "left-nav-item",
-                (item.to === "/" ? location.pathname === "/" : location.pathname.startsWith(item.to)) && "left-nav-item--active"
-              )}
+              className={cn("left-nav-item", isActive && "left-nav-item--active")}
+              title={collapsed ? item.label : undefined}
             >
-              {item.icon}
-              {!collapsed && <span>{item.label}</span>}
+              <span className="left-nav-icon">{item.icon}</span>
+              {!collapsed && <span className="left-nav-label">{item.label}</span>}
             </Link>
-          )
-        ))}
+          );
+        })}
       </div>
 
-      <button className="left-nav-collapse" onClick={onToggle}>
-        <Shrink size={16} />
+      <button className="left-nav-collapse-btn" onClick={onToggle} aria-label={collapsed ? "Развернуть меню" : "Свернуть меню"}>
+        {collapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
         {!collapsed && <span>Свернуть</span>}
       </button>
     </aside>

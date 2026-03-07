@@ -11,6 +11,8 @@ import { Input } from "../shared/ui/Input";
 import { Modal } from "../shared/ui/Modal";
 import { Select } from "../shared/ui/Select";
 import { Textarea } from "../shared/ui/Textarea";
+import { WorkspaceHeader } from "../shared/ui/WorkspaceHeader";
+import { WorkspaceStateCard } from "../shared/ui/WorkspaceStateCard";
 
 export function ClubStudioPage() {
   const { clubId = "" } = useParams();
@@ -42,23 +44,26 @@ export function ClubStudioPage() {
   });
 
   if (permissionsQuery.isLoading) {
-    return <p>Проверяем права доступа…</p>;
+    return <WorkspaceStateCard title="Club Studio" description="Проверяем права доступа..." />;
   }
 
   if (permissionsQuery.isError) {
     return (
-      <Card>
-        <h2>Не удалось проверить доступ</h2>
-        <p className="muted">Попробуйте обновить страницу или открыть клубы позже.</p>
-        <div className="row gap" style={{ marginTop: 12 }}>
-          <Link to="/clubs">
-            <Button>К клубам</Button>
-          </Link>
-          <Button variant="secondary" onClick={() => permissionsQuery.refetch()} disabled={permissionsQuery.isFetching}>
-            Повторить
-          </Button>
-        </div>
-      </Card>
+      <WorkspaceStateCard
+        title="Club Studio"
+        description="Не удалось проверить доступ. Попробуйте снова или вернитесь к списку клубов."
+        tone="error"
+        actions={
+          <>
+            <Link to="/clubs">
+              <Button>К клубам</Button>
+            </Link>
+            <Button variant="secondary" onClick={() => permissionsQuery.refetch()} disabled={permissionsQuery.isFetching}>
+              Повторить
+            </Button>
+          </>
+        }
+      />
     );
   }
 
@@ -71,7 +76,7 @@ export function ClubStudioPage() {
   }
 
   if (isLoading) {
-    return <p>Загружаем Club Studio…</p>;
+    return <WorkspaceStateCard title="Club Studio" description="Загружаем данные клуба..." />;
   }
 
   if (isError || !club) {
@@ -82,17 +87,14 @@ export function ClubStudioPage() {
 
   return (
     <section className="page-stack">
-      <div className="ui-card club-studio-hero">
-        <h1>Club Studio · {club.name}</h1>
-        <p className="muted">Управление профилем, участниками и инвайтами клуба.</p>
-      </div>
+      <WorkspaceHeader title={`Club Studio · ${club.name}`} description="Управление профилем клуба, составом и приглашениями." />
 
       <div className="club-studio-nav ui-card">
         <Link to={`/club-studio/${club.id}`} className={cn("dashboard-menu-item", !isInvitesRoute && "dashboard-menu-item--active")}>
-          Overview
+          Обзор
         </Link>
         <Link to={`/club-studio/${club.id}/invites`} className={cn("dashboard-menu-item", isInvitesRoute && "dashboard-menu-item--active")}>
-          Invites
+          Инвайты
         </Link>
       </div>
 
@@ -103,7 +105,7 @@ export function ClubStudioPage() {
           <Card>
             <div className="row between">
               <div>
-                <h3>Profile</h3>
+                <h3>Профиль</h3>
                 <p className="muted">Описание, соцсети, обложка и аватар.</p>
               </div>
               <ClubProfileEditModal
@@ -123,7 +125,7 @@ export function ClubStudioPage() {
           </Card>
 
           <Card>
-            <h3>Members</h3>
+            <h3>Участники</h3>
             {!club.djs?.length ? (
               <p className="muted">Участников пока нет</p>
             ) : (
@@ -132,8 +134,8 @@ export function ClubStudioPage() {
                   <thead>
                     <tr>
                       <th>DJ</th>
-                      <th>Role</th>
-                      <th>Status</th>
+                      <th>Роль</th>
+                      <th>Статус</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -150,15 +152,10 @@ export function ClubStudioPage() {
             )}
           </Card>
 
-          <Card>
-            <h3>Media</h3>
-            <p className="muted">MVP: gallery URL-менеджмент подключим следующим шагом.</p>
-          </Card>
-
-          <Card>
-            <h3>Settings</h3>
-            <p className="muted">Visibility: {club.visibility}</p>
-          </Card>
+          <WorkspaceStateCard
+            title="Дополнительные настройки"
+            description={`Галерея и расширенные параметры клуба будут добавлены позже. Текущая видимость клуба: ${club.visibility}.`}
+          />
         </>
       )}
     </section>
@@ -235,10 +232,10 @@ function ClubProfileEditModal({
         footer={
           <>
             <Button variant="ghost" onClick={() => setOpen(false)}>
-              Cancel
+              Отмена
             </Button>
             <Button type="submit" form={`club-edit-form-${clubId}`} disabled={isPending}>
-              Save
+              {isPending ? "Сохраняем..." : "Сохранить"}
             </Button>
           </>
         }
@@ -274,34 +271,34 @@ function ClubProfileEditModal({
           }}
         >
           <label>
-            Title
+            Название
             <Input name="title" defaultValue={title} />
           </label>
           <label>
-            City
+            Город
             <Input name="city" defaultValue={city} />
           </label>
           <label>
-            Address
+            Адрес
             <Input name="address" defaultValue={address} />
           </label>
           <label>
-            Description
+            Описание
             <Textarea name="description" rows={4} defaultValue={description} />
           </label>
           <label>
-            Avatar URL
+            URL аватара
             <Input name="avatar_url" defaultValue={avatarUrl} />
           </label>
           <label>
-            Cover URL
+            URL обложки
             <Input name="cover_url" defaultValue={coverUrl} />
           </label>
           <label>
-            Visibility
+            Видимость
             <Select name="visibility" defaultValue={visibility}>
-              <option value="public">public</option>
-              <option value="unlisted">unlisted</option>
+              <option value="public">Публичный</option>
+              <option value="unlisted">По ссылке</option>
             </Select>
           </label>
           <label>
@@ -341,7 +338,7 @@ function ClubProfileEditModal({
             <Input name="spotify" defaultValue={socials?.spotify || ""} />
           </label>
           <label>
-            Website
+            Сайт
             <Input name="website" defaultValue={socials?.website || ""} />
           </label>
         </form>

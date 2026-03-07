@@ -6,6 +6,8 @@ import { Button } from "../shared/ui/Button";
 import { Card } from "../shared/ui/Card";
 import { Input } from "../shared/ui/Input";
 import { Textarea } from "../shared/ui/Textarea";
+import { WorkspaceHeader } from "../shared/ui/WorkspaceHeader";
+import { WorkspaceStateCard } from "../shared/ui/WorkspaceStateCard";
 
 export function DashboardStreamPage() {
   const { data, refetch } = useQuery({
@@ -23,30 +25,31 @@ export function DashboardStreamPage() {
   });
 
   if (!data) {
-    return <p>Загружаем настройки стрима…</p>;
+    return <WorkspaceStateCard title="Стрим" description="Загружаем настройки эфира..." />;
   }
 
   const status: "live" | "offline" = data.is_live ? "live" : "offline";
 
   return (
     <div className="page-stack">
+      <WorkspaceHeader title="Стрим" description="Управление метаданными эфира и параметрами ingest-подключения." />
+
       <Card>
-        <h2>Stream status</h2>
-        <p className="muted">Управляйте эфиром и ingest-подключением.</p>
+        <h3>Статус эфира</h3>
         <div className="form-grid">
           <div className={`stream-status-indicator stream-status-indicator--${status}`}>
             <span className="status-dot" />
             <strong>{status === "live" ? "LIVE" : "OFFLINE"}</strong>
           </div>
           <p className="muted">Статус определяется автоматически по входящему потоку из OBS.</p>
-          <p className="muted">Ingest status: {data.is_live ? "Live" : "No signal"}</p>
+          <p className="muted">Ingest: {data.is_live ? "Сигнал получен" : "Нет сигнала"}</p>
           <CopyField label="RTMP URL" value={data.ingest_server} />
           <CopyField label="Stream Key" value={data.stream_key} />
         </div>
       </Card>
 
       <Card className="danger-zone">
-        <h3>Danger Zone</h3>
+        <h3>Опасная зона</h3>
         <p className="muted">Сброс stream key завершит текущие подключения OBS.</p>
         <Button variant="danger" disabled title="Скоро">
           Сбросить ключ
@@ -54,7 +57,7 @@ export function DashboardStreamPage() {
       </Card>
 
       <Card>
-        <h3>OBS Setup</h3>
+        <h3>Подключение OBS</h3>
         <ol className="obs-steps">
           <li>Откройте OBS → Настройки → Трансляция.</li>
           <li>Выберите сервис: Custom.</li>
@@ -65,7 +68,7 @@ export function DashboardStreamPage() {
       </Card>
 
       <Card>
-        <h3>Stream metadata</h3>
+        <h3>Метаданные стрима</h3>
         <form
           className="form-grid"
           onSubmit={(event) => {
@@ -80,22 +83,24 @@ export function DashboardStreamPage() {
           }}
         >
           <label>
-            Title
+            Название
             <Input name="title" defaultValue={data.title} />
           </label>
           <label>
-            Genre
+            Жанр
             <Input name="genre" defaultValue={data.genre} />
           </label>
           <label>
-            Now Playing
+            Сейчас играет
             <Input name="current_track" defaultValue={data.current_track} />
           </label>
           <label>
-            Description
+            Описание
             <Textarea name="description" defaultValue={data.description} rows={4} />
           </label>
-          <Button type="submit">Сохранить</Button>
+          <Button type="submit" disabled={mutation.isPending}>
+            {mutation.isPending ? "Сохраняем..." : "Сохранить"}
+          </Button>
         </form>
       </Card>
     </div>

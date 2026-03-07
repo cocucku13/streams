@@ -23,9 +23,9 @@ export function FiltersBar({ filters, sort, onChangeFilters, onChangeSort }: Pro
       </Select>
 
       <Select value={sort} onChange={(event) => onChangeSort(event.target.value as StreamSort)}>
-        <option value="recommended">Recommended</option>
-        <option value="viewers">Viewers</option>
-        <option value="recent">Recently started</option>
+        <option value="recommended">Рекомендации</option>
+        <option value="viewers">По зрителям</option>
+        <option value="recent">Недавно началось</option>
       </Select>
     </div>
   );
