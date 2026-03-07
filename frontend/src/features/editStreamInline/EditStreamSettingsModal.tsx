@@ -15,16 +15,16 @@ type Props = {
   canEditClub: boolean;
   clubs: ClubListItem[];
   canManage: boolean;
-  usernameKey: string;
+  streamIdKey: number;
 };
 
-export function EditStreamSettingsModal({ open, onClose, stream, canEditClub, clubs, canManage, usernameKey }: Props) {
+export function EditStreamSettingsModal({ open, onClose, stream, canEditClub, clubs, canManage, streamIdKey }: Props) {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
     mutationFn: (payload: StreamPatchPayload) => streamApi.patchById(stream.id, payload),
     onMutate: async (payload) => {
-      const key = ["stream-by-username", usernameKey];
+      const key = ["stream-by-id", streamIdKey];
       const previous = queryClient.getQueryData<StreamWithMeta | null>(key);
 
       if (previous) {
@@ -35,8 +35,9 @@ export function EditStreamSettingsModal({ open, onClose, stream, canEditClub, cl
           genre: payload.genre,
           current_track: payload.current_track,
           club_id: payload.club_id,
+          club_title: payload.club_id ? clubs.find((club) => club.id === payload.club_id)?.title || null : null,
+          club_slug: payload.club_id ? clubs.find((club) => club.id === payload.club_id)?.slug || null : null,
           visibility: payload.visibility,
-          club: payload.club_id ? clubs.find((club) => club.id === payload.club_id)?.title || previous.club : "Личный стрим",
         });
       }
 
@@ -44,14 +45,15 @@ export function EditStreamSettingsModal({ open, onClose, stream, canEditClub, cl
     },
     onError: (_error, _payload, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(["stream-by-username", usernameKey], context.previous);
+        queryClient.setQueryData(["stream-by-id", streamIdKey], context.previous);
       }
       toast.error("Не удалось сохранить настройки стрима");
     },
     onSuccess: async () => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["stream-by-username", usernameKey] }),
-        queryClient.invalidateQueries({ queryKey: ["browse-streams"] }),
+        queryClient.invalidateQueries({ queryKey: ["stream-by-id", streamIdKey] }),
+        queryClient.invalidateQueries({ queryKey: ["browse-discover"] }),
+        queryClient.invalidateQueries({ queryKey: ["directory-category-streams"] }),
       ]);
       toast.success("Сохранено");
       onClose();

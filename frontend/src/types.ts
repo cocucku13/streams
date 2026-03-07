@@ -73,6 +73,9 @@ export type Stream = {
   club_slug?: string | null;
   club_title?: string | null;
   is_live: boolean;
+  viewer_count: number;
+  created_at: string;
+  updated_at: string;
   ingest_server: string;
   stream_key: string;
   hls_url: string;
@@ -101,16 +104,6 @@ export type StreamPatchPayload = {
   current_track: string;
   club_id: number | null;
   visibility: "public" | "unlisted";
-};
-
-export type StreamSort = "recommended" | "viewers" | "recent";
-
-export type StreamFilters = {
-  genre?: string;
-  city?: string;
-  club?: string;
-  latency?: "low" | "normal";
-  language?: string;
 };
 
 export type Genre = {
@@ -206,15 +199,9 @@ export type ClubPermissionsMe = {
 };
 
 export type StreamWithMeta = PublicStream & {
-  username: string;
-  city: string;
-  viewers: number;
-  peakViewers?: number;
+  started_at: string;
+  peak_viewers?: number;
   score?: number;
-  startedAt: string;
-  latency: "low" | "normal";
-  language: string;
-  club: string;
 };
 
 export type ChatMessage = {

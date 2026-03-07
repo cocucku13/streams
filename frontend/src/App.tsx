@@ -1,10 +1,9 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useParams } from "react-router-dom";
 import { AppShell } from "./app/layouts/AppShell";
 import { DashboardLayout } from "./app/layouts/DashboardLayout";
 import { RequireAuth } from "./app/router/RequireAuth";
 import { AuthPage } from "./pages/AuthPage";
 import { BrowsePage } from "./pages/BrowsePage";
-import { ChannelPage } from "./pages/ChannelPage";
 import { ClubPage } from "./pages/ClubPage";
 import { ClubStudioInvitesPage } from "./pages/ClubStudioInvitesPage";
 import { ClubStudioPage } from "./pages/ClubStudioPage";
@@ -44,7 +43,7 @@ export default function App() {
         <Route path="/clubs" element={<ClubsPage />} />
         <Route path="/club/:slug" element={<ClubPage />} />
         <Route path="/dj/:username" element={<DJProfilePage />} />
-        <Route path="/channel/:username" element={<ChannelPage />} />
+        <Route path="/channel/:username" element={<LegacyChannelRedirect />} />
         <Route path="/live/:username" element={<LiveAliasPage />} />
         <Route path="/watch/:streamId" element={<WatchPage />} />
         <Route path="/settings" element={<SettingsPage />} />
@@ -85,4 +84,9 @@ export default function App() {
       <Route path="*" element={<Navigate to="/404" replace />} />
     </Routes>
   );
+}
+
+function LegacyChannelRedirect() {
+  const { username = "" } = useParams();
+  return <Navigate to={`/dj/${username}`} replace />;
 }

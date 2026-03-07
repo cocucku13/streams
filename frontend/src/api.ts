@@ -1,4 +1,3 @@
-import dayjs from "dayjs";
 import type {
   ActiveStreamLookup,
   Club,
@@ -6,20 +5,17 @@ import type {
   ClubMember,
   ClubPermissionsMe,
   DJProfile,
-  Genre,
   DiscoverStream,
+  ChatMessage,
   InvitePreflight,
   Profile,
   PublicStream,
   Stream,
-  StreamFilters,
   StreamPatchPayload,
-  StreamSort,
   StreamWithMeta,
   TokenResponse,
   ViewerCountResponse,
 } from "./types";
-import { slugify } from "./shared/lib/utils";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api";
 
@@ -172,105 +168,24 @@ export const streamApi = {
   live: () => request<PublicStream[]>("/streams/live"),
   discover: (limit = 20) => request<DiscoverStream[]>(`/streams/discover?limit=${limit}`),
   viewerCount: (id: number) => request<ViewerCountResponse>(`/streams/${id}/viewer-count`),
+  chatHistory: (id: number, limit = 50) => request<ChatMessage[]>(`/streams/${id}/chat/history?limit=${limit}`),
 };
 
-const cities = ["Москва", "Санкт-Петербург", "Казань", "Минск", "Берлин"];
-const languages = ["RU", "EN", "DE"];
-
-const genreArtwork: Record<string, string> = {
-  techno: "linear-gradient(135deg, #9146ff, #00d1ff)",
-  house: "linear-gradient(135deg, #772ce8, #ff4ddb)",
-  trance: "linear-gradient(135deg, #6e56cf, #00f593)",
-  default: "linear-gradient(135deg, #1f1f23, #18181b)",
-};
-
-function normalizeGenre(genre: string) {
-  const cleaned = genre.trim().toLowerCase();
-  return cleaned || "open-format";
-}
-
-function enrichStream(stream: PublicStream, index: number): StreamWithMeta {
-  const city = cities[index % cities.length];
-  const language = languages[index % languages.length];
-  const viewers = 35 + index * 17;
-  const startedAt = dayjs().subtract(15 + index * 7, "minute").toISOString();
-
+async function mapDiscoverStreamToMeta(item: DiscoverStream): Promise<StreamWithMeta> {
+  const stream = await streamApi.byId(item.stream_id);
   return {
     ...stream,
-    username: stream.owner_username || slugify(stream.owner_name),
-    city,
-    viewers,
-    startedAt,
-    latency: index % 3 === 0 ? "normal" : "low",
-    language,
-    club: stream.club_title || (stream.owner_name.includes("Club") ? stream.owner_name : stream.description.split("@")[1]?.trim() || "Unknown Club"),
+    viewer_count: item.viewer_count,
+    started_at: item.started_at,
+    peak_viewers: item.peak_viewers,
+    score: item.score,
   };
-}
-
-function filterStreams(streams: StreamWithMeta[], filters: StreamFilters): StreamWithMeta[] {
-  return streams.filter((stream) => {
-    if (filters.genre && normalizeGenre(stream.genre) !== normalizeGenre(filters.genre)) {
-      return false;
-    }
-    if (filters.city && stream.city !== filters.city) {
-      return false;
-    }
-    if (filters.club && !stream.club.toLowerCase().includes(filters.club.toLowerCase())) {
-      return false;
-    }
-    if (filters.latency && stream.latency !== filters.latency) {
-      return false;
-    }
-    if (filters.language && stream.language !== filters.language) {
-      return false;
-    }
-    return true;
-  });
-}
-
-function sortStreams(streams: StreamWithMeta[], sort: StreamSort): StreamWithMeta[] {
-  if (sort === "viewers") {
-    return [...streams].sort((a, b) => b.viewers - a.viewers);
-  }
-  if (sort === "recent") {
-    return [...streams].sort((a, b) => dayjs(b.startedAt).valueOf() - dayjs(a.startedAt).valueOf());
-  }
-  return [...streams].sort((a, b) => (a.latency === "low" ? -1 : 1) - (b.latency === "low" ? -1 : 1));
 }
 
 export const browseApi = {
   async discoverStreams(limit = 20): Promise<StreamWithMeta[]> {
     const ranked = await streamApi.discover(limit);
-    return ranked.map((item, index) => ({
-      id: item.stream_id,
-      owner_id: 0,
-      owner_username: item.dj_username,
-      owner_name: item.dj_username,
-      owner_avatar: "",
-      title: `Live set by ${item.dj_username}`,
-      description: "",
-      genre: "",
-      current_track: "",
-      visibility: "public",
-      club_id: null,
-      club_slug: null,
-      club_title: null,
-      is_live: true,
-      viewer_count: item.viewer_count,
-      hls_url: "",
-      whep_url: "",
-      created_at: item.started_at,
-      updated_at: item.started_at,
-      username: item.dj_username,
-      city: cities[index % cities.length],
-      viewers: item.viewer_count,
-      peakViewers: item.peak_viewers,
-      score: item.score,
-      startedAt: item.started_at,
-      latency: "normal",
-      language: languages[index % languages.length],
-      club: "Unknown Club",
-    }));
+    return Promise.all(ranked.map(mapDiscoverStreamToMeta));
   },
 
   async refreshViewerCounts(streamIds: number[]): Promise<Record<number, number>> {
@@ -284,58 +199,15 @@ export const browseApi = {
     return Object.fromEntries(rows);
   },
 
-  async streams(filters: StreamFilters = {}, sort: StreamSort = "recommended") {
-    const list = await streamApi.live();
-    const enriched = list.map(enrichStream);
-    return sortStreams(filterStreams(enriched, filters), sort);
+  async liveStreams(): Promise<PublicStream[]> {
+    return streamApi.live();
   },
 
-  async streamByUsername(username: string) {
-    const streams = await this.streams();
-    return streams.find((stream) => stream.username === username) || null;
-  },
-
-  async streamById(streamId: number) {
+  async streamById(streamId: number): Promise<StreamWithMeta> {
     const stream = await streamApi.byId(streamId);
-    return enrichStream(stream, 0);
-  },
-
-  async genres(): Promise<Genre[]> {
-    const streams = await this.streams();
-    const byGenre = new Map<string, number>();
-    streams.forEach((stream) => {
-      const key = normalizeGenre(stream.genre);
-      byGenre.set(key, (byGenre.get(key) || 0) + 1);
-    });
-
-    return Array.from(byGenre.entries()).map(([slug, liveCount]) => ({
-      slug,
-      name: slug[0].toUpperCase() + slug.slice(1),
-      liveCount,
-      image: genreArtwork[slug] || genreArtwork.default,
-    }));
-  },
-
-  async clubs(): Promise<Club[]> {
-    const streams = await this.streams();
-    const byClub = new Map<string, { slug: string; streams: StreamWithMeta[] }>();
-    streams.forEach((stream) => {
-      const key = stream.club || "Unknown Club";
-      const slug = stream.club_slug || slugify(key);
-      if (!byClub.has(key)) {
-        byClub.set(key, { slug, streams: [] });
-      }
-      byClub.get(key)?.streams.push(stream);
-    });
-
-    return Array.from(byClub.entries()).map(([name, clubData], index) => ({
-      id: index + 1,
-      slug: clubData.slug,
-      name: name || `Club ${index + 1}`,
-      city: clubData.streams[0]?.city || cities[index % cities.length],
-      isLive: clubData.streams.length > 0,
-      nowPlaying: clubData.streams[0]?.current_track || "Track not available",
-      image: genreArtwork.default,
-    }));
+    return {
+      ...stream,
+      started_at: stream.updated_at || stream.created_at,
+    };
   },
 };

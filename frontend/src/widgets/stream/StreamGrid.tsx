@@ -1,10 +1,10 @@
 import { StreamCard } from "./StreamCard";
 import { Skeleton } from "../../shared/ui/Skeleton";
-import type { StreamWithMeta } from "../../types";
+import type { PublicStream, StreamWithMeta } from "../../types";
 import { Button } from "../../shared/ui/Button";
 import { Link } from "react-router-dom";
 
-export function StreamGrid({ streams, loading }: { streams: StreamWithMeta[]; loading: boolean }) {
+export function StreamGrid({ streams, loading }: { streams: Array<PublicStream | StreamWithMeta>; loading: boolean }) {
   if (loading) {
     return (
       <section className="stream-grid">

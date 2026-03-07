@@ -53,9 +53,6 @@ export function TopNav({ onToggleSidebar }: { onToggleSidebar: () => void }) {
             <Button variant="secondary" onClick={() => navigate("/dashboard")}>
               Creator Studio
             </Button>
-            <Button variant="ghost" onClick={() => navigate("/dashboard")}>
-              Dashboard
-            </Button>
             {manageableClub ? (
               <Button variant="ghost" onClick={() => navigate(`/club-studio/${manageableClub.id}`)}>
                 Club Studio

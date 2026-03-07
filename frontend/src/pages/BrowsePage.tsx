@@ -16,7 +16,6 @@ function applyViewerCounts(streams: StreamWithMeta[], viewerCounts: Record<numbe
     return {
       ...stream,
       viewer_count: refreshedViewers,
-      viewers: refreshedViewers,
     };
   });
 }
@@ -56,9 +55,9 @@ export function BrowsePage() {
 
   const streams = useMemo(() => applyViewerCounts(data || [], viewerCounts), [data, viewerCounts]);
   const trendingNow = useMemo(() => [...streams].sort((a, b) => (b.score || 0) - (a.score || 0)).slice(0, SECTION_LIMIT), [streams]);
-  const liveDjs = useMemo(() => [...streams].sort((a, b) => b.viewers - a.viewers).slice(0, SECTION_LIMIT), [streams]);
+  const liveDjs = useMemo(() => [...streams].sort((a, b) => b.viewer_count - a.viewer_count).slice(0, SECTION_LIMIT), [streams]);
   const justStarted = useMemo(
-    () => [...streams].sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()).slice(0, SECTION_LIMIT),
+    () => [...streams].sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime()).slice(0, SECTION_LIMIT),
     [streams]
   );
 
